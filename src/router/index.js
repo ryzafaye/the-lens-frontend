@@ -96,11 +96,11 @@ vueRouter.beforeEach(async (to) => {
 });
 
 export const router = {
-    get(path, query = {}) {
-        return vueRouter.push({ path, query });
+    push(target) {
+        return vueRouter.push(target);
     },
-    visit(path) {
-        return vueRouter.push(path);
+    replace(target) {
+        return vueRouter.replace(target);
     },
     async reload(options = {}) {
         try {
@@ -118,5 +118,7 @@ export const router = {
         }
     },
 };
+
+vueRouter.reload = router.reload.bind(router);
 
 export default vueRouter;

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import PageHead from '../../Components/PageHead.vue';
+import PageHead from '../../components/PageHead.vue';
 import { router } from '../../router/index.js';
 import { apiFetch } from '../../services/api.js';
 import AdminLayout from '../../Layouts/AdminLayout.vue';

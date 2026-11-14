@@ -1,14 +1,15 @@
 <script setup>
 import { ref } from 'vue';
-import PageHead from '../../Components/PageHead.vue';
+import { useRouter } from 'vue-router';
+import PageHead from '../../components/PageHead.vue';
 import { useApiForm } from '../../composables/useApiForm.js';
 import { useAppState } from '../../state/appState.js';
-import { router } from '../../router/index.js';
 
 const props = defineProps({
     studentNumber: { type: String, default: '' },
 });
 
+const router = useRouter();
 const page = useAppState();
 const showPassword = ref(false);
 const form = useApiForm({ student_number: props.studentNumber ?? '', password: '' });
@@ -27,7 +28,7 @@ function submit() {
                     : role.endsWith('head') ? 'section-head'
                     : 'executive');
             const destination = result.redirect ?? new URLSearchParams(window.location.search).get('redirect') ?? `/${portal}/dashboard`;
-            router.visit(destination);
+            router.push(destination);
         },
     });
 }
@@ -45,7 +46,7 @@ function submit() {
                     <div class="relative z-10 flex items-center justify-center"><div class="relative group"><div class="absolute -inset-3 sm:-inset-4 lg:-inset-6 rounded-full bg-gradient-to-tr from-rose-600/50 via-wine/70 to-amber-500/35 blur-xl sm:blur-2xl animate-pulse-glow"></div><div class="relative w-24 h-24 sm:w-32 sm:h-32 lg:w-80 lg:h-80 rounded-full p-2 lg:p-3 bg-gradient-to-b from-white/30 via-white/10 to-transparent shadow-xl lg:shadow-2xl backdrop-blur-xl animate-float-logo"><div class="w-full h-full rounded-full overflow-hidden border border-white/40 lg:border-2 shadow-inner bg-[#4a091b]"><img :src="'/images/logo.jpg'" alt="The Lens Logo" class="w-full h-full object-cover select-none"></div></div></div></div>
                 </section>
                 <section class="lg:w-1/2 flex flex-col justify-center p-6 sm:p-10 lg:p-16 bg-white relative">
-                    <a href="/" class="absolute top-4 right-4 sm:top-8 sm:right-8 z-30 group inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-stone-500 hover:text-wine py-1.5 px-3 rounded-lg hover:bg-stone-100" aria-label="Back to public site"><i class="fa-solid fa-arrow-left text-xs" aria-hidden="true"></i><span>Back to site</span></a>
+                    <RouterLink to="/" class="absolute top-4 right-4 sm:top-8 sm:right-8 z-30 group inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-stone-500 hover:text-wine py-1.5 px-3 rounded-lg hover:bg-stone-100" aria-label="Back to public site"><i class="fa-solid fa-arrow-left text-xs" aria-hidden="true"></i><span>Back to site</span></RouterLink>
                     <div class="w-full max-w-sm mx-auto relative z-20 pt-6">
                         <div class="mb-6 sm:mb-8"><span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-widest uppercase bg-rose-900/10 text-rose-900 mb-3">Member Portal</span><h1 class="font-display text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">Sign In</h1><p class="mt-1.5 text-sm text-stone-500">Enter your student number and password to proceed.</p></div>
                         <div v-if="form.errors.student_number || form.errors.general || page.props.errors?.student_number" class="mb-6 p-3.5 rounded-xl text-xs sm:text-sm font-medium bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-2" role="alert"><i class="fa-solid fa-circle-exclamation text-rose-500" aria-hidden="true"></i><span>{{ form.errors.student_number || form.errors.general || page.props.errors.student_number }}</span></div>

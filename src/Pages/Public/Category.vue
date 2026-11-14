@@ -1,6 +1,6 @@
 <script setup>
 import PublicLayout from '../../Layouts/PublicLayout.vue';
-import ShareButton from '../../Components/ShareButton.vue';
+import ShareButton from '../../components/ShareButton.vue';
 
 defineProps({
     currentCategory: { type: Object, required: true },
@@ -20,12 +20,12 @@ defineProps({
 
             <section class="space-y-6">
                 <article v-for="article in articles" :key="article.id" class="category-list-card" :data-article-id="article.id">
-                    <a :href="article.url" class="category-list-image article-clickable" :aria-label="`Read article: ${article.title}`"><div class="article-image category-list-thumb"><img :src="article.imageUrl" :alt="article.title" loading="lazy"></div></a>
+                    <RouterLink :to="article.url" class="category-list-image article-clickable" :aria-label="`Read article: ${article.title}`"><div class="article-image category-list-thumb"><img :src="article.imageUrl" :alt="article.title" loading="lazy"></div></RouterLink>
                     <div class="category-list-copy">
                         <div class="article-meta"><span class="article-category-label">{{ article.category }}</span><span class="article-meta-separator" aria-hidden="true">·</span><time>{{ article.publishedAt }}</time></div>
-                        <h2 class="category-list-title"><a :href="article.url" class="article-title-button">{{ article.title }}</a></h2>
+                        <h2 class="category-list-title"><RouterLink :to="article.url" class="article-title-button">{{ article.title }}</RouterLink></h2>
                         <p class="category-list-excerpt">{{ article.excerpt }}</p>
-                        <p class="article-byline"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <a v-if="article.author" :href="article.authorUrl" class="author-profile-link">{{ article.author }}</a><strong v-else>The Lens Staff</strong></span></p>
+                        <p class="article-byline"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="article.author" :to="article.authorUrl" class="author-profile-link">{{ article.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
                         <div class="article-stats" aria-label="Article engagement and reading time">
                             <span class="article-view-count" title="Views"><i class="fa-regular fa-eye" aria-hidden="true"></i><span>{{ article.views.toLocaleString() }}</span><span class="stat-label">views</span></span>
                             <span class="article-read-time" title="Estimated reading time"><i class="fa-regular fa-clock" aria-hidden="true"></i><span>{{ article.readMinutes }} min read</span></span>
@@ -34,12 +34,12 @@ defineProps({
                     </div>
                 </article>
                 <div v-if="!articles.length" class="p-12 text-center text-slate-400 border border-dashed border-slate-200 rounded-2xl my-8">
-                    <i class="fa-regular fa-newspaper text-4xl mb-3 text-slate-300 block"></i><h2 class="font-bold text-lg text-slate-700">No Published Stories in this Section Yet</h2><p class="text-xs text-slate-500 mt-1">Articles published by the editorial team will appear here.</p><div class="mt-6"><a href="/" class="inline-block border border-wine px-4 py-2 text-wine text-xs font-bold rounded hover:bg-rose-50 transition-colors">← Back to Homepage</a></div>
+                    <i class="fa-regular fa-newspaper text-4xl mb-3 text-slate-300 block"></i><h2 class="font-bold text-lg text-slate-700">No Published Stories in this Section Yet</h2><p class="text-xs text-slate-500 mt-1">Articles published by the editorial team will appear here.</p><div class="mt-6"><RouterLink to="/" class="inline-block border border-wine px-4 py-2 text-wine text-xs font-bold rounded hover:bg-rose-50 transition-colors">← Back to Homepage</RouterLink></div>
                 </div>
             </section>
 
             <nav v-if="pagination.length > 1" class="mt-10 flex justify-center gap-2" aria-label="Pagination">
-                <a v-for="item in pagination" :key="`${item.label}-${item.url}`" :href="item.url || undefined" :aria-current="item.active ? 'page' : undefined" :class="['px-3 py-2 rounded border text-sm', item.active ? 'bg-wine text-white border-wine' : 'border-stone-200 text-stone-700', !item.url && 'opacity-50 pointer-events-none']">{{ item.label.replace(/&laquo;|&raquo;/g, '') }}</a>
+                <RouterLink v-for="item in pagination" :key="`${item.label}-${item.url}`" :to="item.url || ''" :aria-current="item.active ? 'page' : undefined" :class="['px-3 py-2 rounded border text-sm', item.active ? 'bg-wine text-white border-wine' : 'border-stone-200 text-stone-700', !item.url && 'opacity-50 pointer-events-none']">{{ item.label.replace(/&laquo;|&raquo;/g, '') }}</RouterLink>
             </nav>
         </main>
     </PublicLayout>

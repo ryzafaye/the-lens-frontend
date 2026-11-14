@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
-import PageHead from '../../Components/PageHead.vue';
+import PageHead from '../../components/PageHead.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
 const props = defineProps({ portal: { type: String, required: true }, activities: { type: Array, default: () => [] } });

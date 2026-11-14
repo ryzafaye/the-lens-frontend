@@ -1,5 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { apiRequest } from '../../services/api.js';
+import { appState } from '../../state/appState.js';
 import { router } from '../../router/index.js';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 
@@ -25,19 +27,24 @@ function editUrl(article) {
     return `/${props.portal}/submit-article?draft_id=${encodeURIComponent(article.id)}`;
 }
 
-function removeDraft(article) {
+async function removeDraft(article) {
     if (!window.confirm(`Delete “${article.title}”? This cannot be undone.`)) return;
-    router.delete(`/${props.portal}/drafts/${article.id}`, { preserveScroll: true });
+    try {
+        await apiRequest(`/${props.portal}/drafts/${article.id}`, { method: 'DELETE' });
+        await router.reload({ preserveScroll: true });
+    } catch (error) {
+        appState.error = error.response?.data?.message ?? 'The draft could not be deleted.';
+    }
 }
 </script>
 
 <template>
     <AdminLayout title="Manage My Articles">
         <section class="my-articles-page">
-            <header class="my-articles-header"><div><p class="my-articles-eyebrow">MY WORKSPACE</p><h1>Manage My Articles</h1><p>Review your drafts, submissions, and published stories.</p></div><a :href="`/${portal}/submit-article`" class="my-articles-create"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i> New Article</a></header>
+            <header class="my-articles-header"><div><p class="my-articles-eyebrow">MY WORKSPACE</p><h1>Manage My Articles</h1><p>Review your drafts, submissions, and published stories.</p></div><RouterLink :to="`/${portal}/submit-article`" class="my-articles-create"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i> New Article</RouterLink></header>
             <div class="my-articles-toolbar"><label class="my-articles-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input v-model="search" type="search" placeholder="Search by title, category, or status" aria-label="Search your articles"></label><label class="my-articles-filter"><span>Status</span><select v-model="statusFilter"><option value="all">All statuses</option><option value="draft">Draft</option><option value="for revision">For revision</option><option value="pending review">Pending review</option><option value="pending eic review">Pending EIC review</option><option value="published">Published</option></select></label><span class="my-articles-count">{{ filteredArticles.length }} {{ filteredArticles.length === 1 ? 'article' : 'articles' }}</span></div>
-            <div v-if="filteredArticles.length" class="my-articles-list"><article v-for="article in filteredArticles" :key="article.id" class="my-article-card"><div class="my-article-main"><div class="my-article-topline"><span class="my-article-category">{{ article.category || 'General' }}</span><span class="my-article-status" :class="`status-${String(article.status ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`">{{ article.status }}</span></div><h2>{{ article.title }}</h2><p v-if="article.excerpt" class="my-article-excerpt">{{ article.excerpt }}</p><p v-if="article.remarks" class="my-article-remarks"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i> {{ article.remarks }}</p><div class="my-article-meta"><span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ article.date }}</span><span v-if="article.author"><i class="fa-regular fa-user" aria-hidden="true"></i> {{ article.author }}</span><span v-if="article.views !== undefined"><i class="fa-regular fa-eye" aria-hidden="true"></i> {{ Number(article.views).toLocaleString() }} views</span><span v-if="article.shares !== undefined"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i> {{ Number(article.shares).toLocaleString() }} shares</span></div></div><div class="my-article-actions"><a v-if="canEdit(article)" :href="editUrl(article)" class="my-article-edit"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit</a><button v-if="canEdit(article)" type="button" class="my-article-delete" @click="removeDraft(article)"><i class="fa-regular fa-trash-can" aria-hidden="true"></i><span class="sr-only">Delete draft</span></button></div></article></div>
-            <div v-else class="my-articles-empty"><span><i class="fa-regular fa-folder-open" aria-hidden="true"></i></span><h2>{{ articles.length ? 'No matching articles' : 'No articles yet' }}</h2><p>{{ articles.length ? 'Try another search or status filter.' : 'Your drafts and submissions will appear here.' }}</p><a v-if="!articles.length" :href="`/${portal}/submit-article`" class="my-articles-create"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i> Write your first article</a></div>
+            <div v-if="filteredArticles.length" class="my-articles-list"><article v-for="article in filteredArticles" :key="article.id" class="my-article-card"><div class="my-article-main"><div class="my-article-topline"><span class="my-article-category">{{ article.category || 'General' }}</span><span class="my-article-status" :class="`status-${String(article.status ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`">{{ article.status }}</span></div><h2>{{ article.title }}</h2><p v-if="article.excerpt" class="my-article-excerpt">{{ article.excerpt }}</p><p v-if="article.remarks" class="my-article-remarks"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i> {{ article.remarks }}</p><div class="my-article-meta"><span><i class="fa-regular fa-calendar" aria-hidden="true"></i> {{ article.date }}</span><span v-if="article.author"><i class="fa-regular fa-user" aria-hidden="true"></i> {{ article.author }}</span><span v-if="article.views !== undefined"><i class="fa-regular fa-eye" aria-hidden="true"></i> {{ Number(article.views).toLocaleString() }} views</span><span v-if="article.shares !== undefined"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i> {{ Number(article.shares).toLocaleString() }} shares</span></div></div><div class="my-article-actions"><RouterLink v-if="canEdit(article)" :to="editUrl(article)" class="my-article-edit"><i class="fa-regular fa-pen-to-square" aria-hidden="true"></i> Edit</RouterLink><button v-if="canEdit(article)" type="button" class="my-article-delete" @click="removeDraft(article)"><i class="fa-regular fa-trash-can" aria-hidden="true"></i><span class="sr-only">Delete draft</span></button></div></article></div>
+            <div v-else class="my-articles-empty"><span><i class="fa-regular fa-folder-open" aria-hidden="true"></i></span><h2>{{ articles.length ? 'No matching articles' : 'No articles yet' }}</h2><p>{{ articles.length ? 'Try another search or status filter.' : 'Your drafts and submissions will appear here.' }}</p><RouterLink v-if="!articles.length" :to="`/${portal}/submit-article`" class="my-articles-create"><i class="fa-solid fa-feather-pointed" aria-hidden="true"></i> Write your first article</RouterLink></div>
         </section>
     </AdminLayout>
 </template>

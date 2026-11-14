@@ -9,7 +9,7 @@ defineProps({
 
 <template>
     <article class="story-card" :data-article-id="article.id">
-        <Link :href="article.url" class="story-card-image-trigger article-clickable" :aria-label="`Read article: ${article.title}`">
+        <Link :to="article.url" class="story-card-image-trigger article-clickable" :aria-label="`Read article: ${article.title}`">
             <div class="article-image story-card-image">
                 <img :src="article.imageUrl" :alt="article.title" loading="lazy">
             </div>
@@ -20,12 +20,12 @@ defineProps({
             <time>{{ article.publishedAt }}</time>
         </div>
         <h3 class="story-card-title">
-            <Link :href="article.url" class="article-title-button">{{ article.title }}</Link>
+            <Link :to="article.url" class="article-title-button">{{ article.title }}</Link>
         </h3>
         <p class="story-card-excerpt">{{ article.excerpt }}</p>
         <p class="article-byline text-xs">
             <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
-            <span>By <Link v-if="article.author" :href="article.authorUrl" class="author-profile-link">{{ article.author }}</Link><strong v-else>The Lens Staff</strong></span>
+            <span>By <Link v-if="article.author" :to="article.authorUrl" class="author-profile-link">{{ article.author }}</Link><strong v-else>The Lens Staff</strong></span>
         </p>
         <div class="article-stats text-xs">
             <span class="article-view-count"><i class="fa-regular fa-eye" aria-hidden="true"></i> <span>{{ article.views.toLocaleString() }}</span></span>

@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue';
-import PageHead from '../../Components/PageHead.vue';
+import PageHead from '../../components/PageHead.vue';
 import { router } from '../../router/index.js';
 import { apiFetch } from '../../services/api.js';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
@@ -54,7 +54,7 @@ async function submit() {
             const validationMessage = result.errors ? Object.values(result.errors).flat()[0] : null;
             throw new Error(validationMessage ?? result.message ?? 'Upload could not be completed.');
         }
-        router.visit(doneTarget.value);
+        router.push(doneTarget.value);
     } catch (submissionError) { error.value = submissionError.message; }
     finally { busy.value = false; }
 }
@@ -64,7 +64,7 @@ onBeforeUnmount(() => { if (preview.value) URL.revokeObjectURL(preview.value); }
 <template>
     <AdminLayout :title="heading">
         <PageHead><link rel="stylesheet" href="/css/mpc-submit-media.css"></PageHead>
-        <main class="upload-page"><header><p class="upload-eyebrow">VISUAL CONTRIBUTIONS</p><h1>{{ heading }}</h1><p>Upload a clear, publication-ready image for the newsroom.</p></header><form class="upload-card" @submit.prevent="submit"><div class="upload-drop" role="button" tabindex="0" @click="input?.click()" @keydown.enter.prevent="input?.click()" @dragover.prevent @drop.prevent="selectFile({ target: { files: $event.dataTransfer.files } })"><input ref="input" type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" hidden @change="selectFile"><template v-if="preview"><img :src="preview" :alt="file?.name || 'Image preview'"><button type="button" class="upload-remove" aria-label="Remove selected image" @click.stop="clearFile">×</button></template><template v-else><i class="fa-solid fa-cloud-arrow-up"></i><strong>Drop your image here or browse</strong><span>SVG, PNG, JPG, or WEBP · Maximum 10 MB</span></template></div><p v-if="file" class="upload-file-name"><i class="fa-regular fa-image"></i> {{ file.name }} · {{ (file.size / 1024 / 1024).toFixed(2) }} MB</p><div class="upload-fields"><label>Title <span>(optional)</span><input v-model="title" maxlength="255" :placeholder="isCartoon ? 'Editorial cartoon title' : 'Photo or graphic title'"></label><label>Caption <span>(optional)</span><textarea v-model="caption" rows="3" placeholder="Add context or a caption for the image."></textarea></label><label v-if="portal === 'mpc' && !isCartoon">Visual type<select v-model="type"><option value="photo">Photo</option><option value="graphic">Publication graphic</option></select></label></div><p v-if="error" class="upload-error" role="alert">{{ error }}</p><footer><a :href="doneTarget">Cancel</a><button type="submit" :disabled="busy">{{ busy ? 'Uploading…' : isCartoon ? 'Submit Cartoon' : 'Submit Media' }}</button></footer></form></main>
+        <main class="upload-page"><header><p class="upload-eyebrow">VISUAL CONTRIBUTIONS</p><h1>{{ heading }}</h1><p>Upload a clear, publication-ready image for the newsroom.</p></header><form class="upload-card" @submit.prevent="submit"><div class="upload-drop" role="button" tabindex="0" @click="input?.click()" @keydown.enter.prevent="input?.click()" @dragover.prevent @drop.prevent="selectFile({ target: { files: $event.dataTransfer.files } })"><input ref="input" type="file" accept="image/svg+xml,image/png,image/jpeg,image/webp" hidden @change="selectFile"><template v-if="preview"><img :src="preview" :alt="file?.name || 'Image preview'"><button type="button" class="upload-remove" aria-label="Remove selected image" @click.stop="clearFile">×</button></template><template v-else><i class="fa-solid fa-cloud-arrow-up"></i><strong>Drop your image here or browse</strong><span>SVG, PNG, JPG, or WEBP · Maximum 10 MB</span></template></div><p v-if="file" class="upload-file-name"><i class="fa-regular fa-image"></i> {{ file.name }} · {{ (file.size / 1024 / 1024).toFixed(2) }} MB</p><div class="upload-fields"><label>Title <span>(optional)</span><input v-model="title" maxlength="255" :placeholder="isCartoon ? 'Editorial cartoon title' : 'Photo or graphic title'"></label><label>Caption <span>(optional)</span><textarea v-model="caption" rows="3" placeholder="Add context or a caption for the image."></textarea></label><label v-if="portal === 'mpc' && !isCartoon">Visual type<select v-model="type"><option value="photo">Photo</option><option value="graphic">Publication graphic</option></select></label></div><p v-if="error" class="upload-error" role="alert">{{ error }}</p><footer><RouterLink :to="doneTarget">Cancel</RouterLink><button type="submit" :disabled="busy">{{ busy ? 'Uploading…' : isCartoon ? 'Submit Cartoon' : 'Submit Media' }}</button></footer></form></main>
     </AdminLayout>
 </template>
 

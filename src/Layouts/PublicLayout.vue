@@ -1,11 +1,24 @@
 <script setup>
-import PageHead from '../Components/PageHead.vue';
-import { onBeforeUnmount, onMounted } from 'vue';
+import PageHead from '../components/PageHead.vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 const props = defineProps({
     title: { type: String, default: 'The Lens Publication' },
     reader: { type: Boolean, default: false },
 });
+
+const router = useRouter();
+const searchQuery = ref('');
+
+function onSearch() {
+    const q = searchQuery.value.trim();
+    if (q) {
+        router.push({ path: '/archives', query: { q } });
+    } else {
+        router.push('/archives');
+    }
+}
 
 onMounted(() => {
     if (props.reader) document.body.classList.add('article-reader-body');
@@ -42,38 +55,38 @@ const navItems = [
                         <a class="facebook-link" href="https://www.facebook.com/profile.php?id=61560889387183" target="_blank" rel="noopener noreferrer" aria-label="The Lens on Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
                         <a class="email-link" href="mailto:thelenspublicationpupbc@gmail.com" aria-label="Email The Lens"><i class="fa-regular fa-envelope" aria-hidden="true"></i></a>
                         <span class="top-bar-divider" aria-hidden="true">|</span>
-                        <a href="/login" class="member-login-btn"><i class="fa-regular fa-user" aria-hidden="true"></i><span>Login as a Member</span></a>
+                        <RouterLink to="/login" class="member-login-btn"><i class="fa-regular fa-user" aria-hidden="true"></i><span>Login as a Member</span></RouterLink>
                     </div>
                 </div>
             </div>
             <div class="brand-search-row">
-                <a href="/" class="brand-lockup" aria-label="The Lens home">
+                <RouterLink to="/" class="brand-lockup" aria-label="The Lens home">
                     <img :src="'/images/logo.jpg'" alt="The Lens logo" class="site-logo">
                     <span class="brand-copy"><span class="brand-name">THE LENS</span><span class="brand-tagline">Basta Lente, Abante!</span></span>
-                </a>
-                <form class="search-form" action="/archives" method="get" role="search">
+                </RouterLink>
+                <form class="search-form" @submit.prevent="onSearch" role="search">
                     <i class="fa-solid fa-magnifying-glass search-leading-icon" aria-hidden="true"></i>
-                    <input type="search" name="q" class="search-input" placeholder="Search articles, authors, or topics…" aria-label="Search articles and authors">
+                    <input v-model="searchQuery" type="search" name="q" class="search-input" placeholder="Search articles, authors, or topics…" aria-label="Search articles and authors">
                     <button type="submit" class="sort-filter-btn"><span>Search</span></button>
                 </form>
                 <div class="header-utility-links" aria-label="Publication links">
-                    <a href="/about" class="header-utility-link"><i class="fa-regular fa-circle-question" aria-hidden="true"></i><span>About Us</span></a>
-                    <a href="/feedback" class="header-utility-link"><i class="fa-regular fa-paper-plane" aria-hidden="true"></i><span>Send Feedback</span></a>
+                    <RouterLink to="/about" class="header-utility-link"><i class="fa-regular fa-circle-question" aria-hidden="true"></i><span>About Us</span></RouterLink>
+                    <RouterLink to="/feedback" class="header-utility-link"><i class="fa-regular fa-paper-plane" aria-hidden="true"></i><span>Send Feedback</span></RouterLink>
                 </div>
             </div>
             <nav class="navigation" aria-label="Main navigation">
-                <div class="navigation-inner"><ul class="nav-list"><li v-for="([label, href]) in navItems" :key="href"><a :href="href" class="nav-link">{{ label }}</a></li></ul></div>
+                <div class="navigation-inner"><ul class="nav-list"><li v-for="([label, href]) in navItems" :key="href"><RouterLink :to="href" class="nav-link">{{ label }}</RouterLink></li></ul></div>
             </nav>
         </header>
         <slot />
         <footer v-if="!reader" class="site-footer mt-auto">
             <div class="footer-inner">
-                <a href="/" class="brand-lockup" aria-label="The Lens home">
+                <RouterLink to="/" class="brand-lockup" aria-label="The Lens home">
                     <img :src="'/images/logo.jpg'" alt="The Lens logo" class="site-logo">
                     <span class="brand-copy"><span class="brand-name">THE LENS</span><span class="brand-tagline">Basta Lente, Abante!</span></span>
-                </a>
+                </RouterLink>
                 <p>Official student publication of PUP Biñan Campus.</p>
-                <div class="footer-links"><a href="/about">About Us</a><a href="/feedback">Send Feedback</a><a href="/archives">Archives</a></div>
+                <div class="footer-links"><RouterLink to="/about">About Us</RouterLink><RouterLink to="/feedback">Send Feedback</RouterLink><RouterLink to="/archives">Archives</RouterLink></div>
             </div>
         </footer>
     </div>

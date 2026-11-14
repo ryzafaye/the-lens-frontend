@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-import PageHead from '../../Components/PageHead.vue';
+import PageHead from '../../components/PageHead.vue';
 import { router } from '../../router/index.js';
 import { apiFetch } from '../../services/api.js';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
@@ -46,12 +46,16 @@ async function sendReviewAction(action, data) {
     } catch (error) { message.value = error.message; }
     finally { busy.value = false; }
 }
+
+function onSortChange(event) {
+    router.push({ path: `/${props.portal}/review-articles`, query: { sort: event.target.value } });
+}
 </script>
 
 <template>
     <AdminLayout title="Review Articles">
         <PageHead><link rel="stylesheet" href="/css/executive-review-articles.css"></PageHead>
-        <main class="review-page"><header class="review-heading"><div><p class="review-eyebrow">EDITORIAL DESK</p><h1>Review Articles</h1><p>Read submissions carefully, make edits, and guide writers with clear feedback.</p></div><label class="review-sort">Sort <select :value="sort" @change="router.get(`/${portal}/review-articles`, { sort: $event.target.value }, { preserveState: true, preserveScroll: true })"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label></header>
+        <main class="review-page"><header class="review-heading"><div><p class="review-eyebrow">EDITORIAL DESK</p><h1>Review Articles</h1><p>Read submissions carefully, make edits, and guide writers with clear feedback.</p></div><label class="review-sort">Sort <select :value="sort" @change="onSortChange"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label></header>
             <p v-if="message" class="review-notice" role="status">{{ message }}</p>
             <div class="review-layout"><nav class="review-list" aria-label="Articles awaiting review"><button v-for="article in articles" :key="article.id" type="button" class="review-list-item" :class="{ selected: selected?.id === article.id }" @click="openArticle(article)"><span class="review-item-top"><span>{{ article.category }}</span><small>{{ article.date }}</small></span><strong>{{ article.title }}</strong><span class="review-item-author">{{ article.author }}<template v-if="article.endorsedBy"> · Endorsed by {{ article.endorsedBy }}</template></span></button><p v-if="!articles.length" class="review-empty-small">There are no articles waiting for review.</p></nav>
                 <section v-if="selected && editor" class="review-editor"><div class="review-editor-top"><span class="review-status">{{ selected.status }}</span><span>{{ selected.author }} · {{ selected.date }}</span></div><label>Headline<input v-model="editor.title" maxlength="255"></label><label>Summary<textarea v-model="editor.excerpt" rows="3"></textarea></label><label>Article body<textarea v-model="editor.content" rows="15"></textarea></label><label class="remarks-label">Revision feedback<textarea v-model="remarks" rows="3" placeholder="Explain what needs to change before returning this article."></textarea></label><div class="review-actions"><button type="button" class="review-save" :disabled="busy" @click="saveChanges">{{ busy ? 'Saving…' : 'Save edits' }}</button><button type="button" class="review-return" :disabled="busy" @click="returnForRevision">Return for revision</button><button type="button" class="review-approve" :disabled="busy" @click="approve">Approve article</button></div></section>

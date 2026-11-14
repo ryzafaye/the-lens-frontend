@@ -1,5 +1,5 @@
 <script setup>
-import PageHead from '../../Components/PageHead.vue';
+import PageHead from '../../components/PageHead.vue';
 import AdminLayout from '../../Layouts/AdminLayout.vue';
 defineProps({ portal: { type: String, required: true }, feedbacks: { type: Array, default: () => [] } });
 </script>
