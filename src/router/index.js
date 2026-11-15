@@ -6,7 +6,7 @@ const pageComponents = import.meta.glob('../Pages/**/*.vue');
 
 const routes = [
     { path: '/', name: 'home', component: () => import('../Pages/Public/Home.vue'), meta: { endpoint: '/api/pages/public/home' } },
-    { path: '/about', name: 'about', component: () => import('../Pages/Public/About.vue'), meta: { endpoint: '/api/pages/public/about' } },
+    { path: '/about', name: 'about', component: () => import('../Pages/Public/About.vue'), meta: { localProps: (to) => ({}) } },
     { path: '/archives', name: 'archives', component: () => import('../Pages/Public/Archives.vue'), meta: { endpoint: '/api/pages/public/archives' } },
     { path: '/articles/:slug', name: 'article', alias: '/article/:slug', component: () => import('../Pages/Public/Article.vue'), meta: { endpoint: '/api/pages/public/article' } },
     { path: '/authors/:slug', name: 'author', alias: '/author/:slug', component: () => import('../Pages/Public/Author.vue'), meta: { endpoint: '/api/pages/public/author' } },
