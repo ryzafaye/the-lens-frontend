@@ -2,6 +2,10 @@
 import PageHead from '../components/PageHead.vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import '@/assets/css/main.css';
+import logoImg from '@/assets/images/logo.jpg';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 const props = defineProps({
     title: { type: String, default: 'The Lens Publication' },
@@ -176,7 +180,7 @@ onBeforeUnmount(() => {
 
 <template>
     <PageHead :title="`${title} | The Lens`">
-        <link rel="stylesheet" href="/css/main.css">
+        
     </PageHead>
     <div :class="['min-h-screen bg-white text-stone-900 font-body antialiased flex flex-col', reader && 'h-screen overflow-hidden']">
         <!-- Site Header -->
@@ -240,7 +244,7 @@ onBeforeUnmount(() => {
                 </button>
 
                 <RouterLink to="/" class="brand-lockup" aria-label="The Lens home">
-                    <img src="/images/logo.jpg" alt="The Lens logo" class="site-logo">
+                    <img :src="logoImg" alt="The Lens logo" class="site-logo">
                     <span class="brand-copy">
                         <span class="brand-name">THE LENS</span>
                         <span class="brand-tagline">Basta Lente, Abante!</span>

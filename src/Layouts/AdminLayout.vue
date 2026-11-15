@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import PageHead from '../components/PageHead.vue';
 import { apiFetch } from '../services/api.js';
+import '@/assets/css/executive-dashboard.css';
+import logoImg from '@/assets/images/logo.jpg';
 import { updateShared, useAppState } from '../state/appState.js';
 
 defineProps({ title: { type: String, default: 'Dashboard' } });
@@ -131,13 +133,13 @@ onBeforeUnmount(() => {
 
 <template>
     <PageHead :title="`${title} | The Lens`">
-        <link rel="stylesheet" href="/css/executive-dashboard.css">
-        <link rel="stylesheet" href="/css/executive-modals.css">
-        <link rel="stylesheet" href="/css/writer-dashboard.css">
+        
+        
+        
     </PageHead>
     <aside id="sidebar" class="sidebar" :class="{ 'is-open': mobileOpen }" aria-label="Member portal navigation">
         <div class="sidebar-top-section">
-            <div class="sidebar-header"><RouterLink to="/" class="sidebar-brand-lockup"><span class="sidebar-logo-square"><img :src="'/images/logo.jpg'" alt="The Lens logo"></span><span class="sidebar-brand-name">The Lens Publication</span></RouterLink></div>
+            <div class="sidebar-header"><RouterLink to="/" class="sidebar-brand-lockup"><span class="sidebar-logo-square"><img :src="logoImg" alt="The Lens logo">></span><span class="sidebar-brand-name">The Lens Publication</span></RouterLink></div>
             <div class="sidebar-profile"><div class="profile-avatar"><img :src="user.avatarUrl ?? '/images/member-placeholder.svg'" :alt="`${user.name ?? 'Member'} avatar`"></div><div class="profile-name">{{ user.name ?? 'Member' }}</div><div class="profile-role-text">{{ role }}</div></div>
             <nav class="sidebar-nav" aria-label="Main navigation"><RouterLink v-for="[label, href, icon] in navItems" :key="href" :to="href" class="sidebar-nav-item" :class="{ active: currentPath === href || (href !== `/${prefix}/dashboard` && currentPath.startsWith(`${href}/`)) }"><i :class="icon" aria-hidden="true"></i><span>{{ label }}</span></RouterLink></nav>
         </div>
@@ -146,7 +148,7 @@ onBeforeUnmount(() => {
     <div v-if="mobileOpen" class="sidebar-backdrop" @click="mobileOpen = false"></div>
     <div class="main-wrapper">
         <header class="topbar">
-            <div class="topbar-left"><div class="mobile-header-brand"><button type="button" id="mobile-hamburger-btn" class="mobile-hamburger-btn" aria-label="Toggle navigation menu" :aria-expanded="mobileOpen" @click="mobileOpen = !mobileOpen"><i class="fa-solid fa-bars" aria-hidden="true"></i></button><RouterLink to="/" class="mobile-brand-lockup"><span class="mobile-logo-square"><img :src="'/images/logo.jpg'" alt="The Lens logo"></span><span class="mobile-brand-title">The Lens</span></RouterLink></div><div class="topbar-clock"><i class="fa-regular fa-clock" aria-hidden="true"></i><span>{{ timeLabel }}</span></div></div>
+            <div class="topbar-left"><div class="mobile-header-brand"><button type="button" id="mobile-hamburger-btn" class="mobile-hamburger-btn" aria-label="Toggle navigation menu" :aria-expanded="mobileOpen" @click="mobileOpen = !mobileOpen"><i class="fa-solid fa-bars" aria-hidden="true"></i></button><RouterLink to="/" class="mobile-brand-lockup"><span class="mobile-logo-square"><img :src="logoImg" alt="The Lens logo">></span><span class="mobile-brand-title">The Lens</span></RouterLink></div><div class="topbar-clock"><i class="fa-regular fa-clock" aria-hidden="true"></i><span>{{ timeLabel }}</span></div></div>
             <div class="topbar-right"><div class="topbar-divider"></div><div class="topbar-user-profile"><div class="topbar-avatar-circle"><img :src="user.avatarUrl ?? '/images/member-placeholder.svg'" alt="User profile picture"></div><div><span class="topbar-user-name">{{ user.name ?? 'Member' }}</span><span class="topbar-role-badge">{{ role }}</span></div></div></div>
         </header>
         <main class="content-container"><div v-if="page.props.flash?.success" class="portal-flash-success" role="status">{{ page.props.flash.success }}</div><div v-if="page.props.flash?.error" class="portal-flash-error" role="alert">{{ page.props.flash.error }}</div><div v-if="page.props.flash?.warning" class="portal-flash-warning" role="status">{{ page.props.flash.warning }}</div><slot /></main>
