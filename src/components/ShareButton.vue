@@ -31,8 +31,14 @@ async function copyArticleLink() {
 
 <template>
     <button type="button" class="article-share-button" :data-copy-article-id="articleId" :data-article-url="articleUrl" :title="copied ? 'Link copied' : 'Copy article link'" @click="copyArticleLink">
-        <i :class="copied ? 'fa-solid fa-check' : 'fa-solid fa-share-nodes'" aria-hidden="true"></i>
-        <span>{{ copied ? 'Copied!' : 'Share' }}</span>
-        <span class="share-count" :data-share-count="articleId">{{ count }}</span>
+        <template v-if="copied">
+            <i class="fa-solid fa-check text-emerald-600" aria-hidden="true"></i>
+            <span class="text-emerald-700 font-medium">Copied!</span>
+        </template>
+        <template v-else>
+            <i class="fa-solid fa-share-nodes" aria-hidden="true"></i>
+            <span>Share</span>
+            <span class="share-count" :data-share-count="articleId">{{ count }}</span>
+        </template>
     </button>
 </template>

@@ -4,8 +4,6 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import '@/assets/css/main.css';
 import logoImg from '@/assets/images/logo.jpg';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
 
 const props = defineProps({
     title: { type: String, default: 'The Lens Publication' },
@@ -66,53 +64,24 @@ function toggleFilter() {
     isFilterOpen.value = !isFilterOpen.value;
 }
 
-function onSearch() {
+function submitSearchAndFilters() {
     isFilterOpen.value = false;
-    const query = { ...route.query };
-    const q = searchQuery.value.trim();
-    if (q) {
-        query.q = q;
-    } else {
-        delete query.q;
-    }
+    const query = {
+        q: searchQuery.value.trim(),
+        sort: sortValue.value,
+        category: categoryValue.value,
+        dateType: dateTypeValue.value,
+        dateValue: dateTypeValue.value === 'choose' ? dateValueInput.value : '',
+    };
     router.push({ path: '/archives', query });
 }
 
+function onSearch() {
+    submitSearchAndFilters();
+}
+
 function applyFilters() {
-    isFilterOpen.value = false;
-    const query = { ...route.query };
-    const q = searchQuery.value.trim();
-    if (q) {
-        query.q = q;
-    } else {
-        delete query.q;
-    }
-
-    if (sortValue.value && sortValue.value !== 'newest') {
-        query.sort = sortValue.value;
-    } else {
-        delete query.sort;
-    }
-
-    if (categoryValue.value && categoryValue.value !== 'All') {
-        query.category = categoryValue.value;
-    } else {
-        delete query.category;
-    }
-
-    if (dateTypeValue.value && dateTypeValue.value !== 'any') {
-        query.dateType = dateTypeValue.value;
-        if (dateTypeValue.value === 'choose' && dateValueInput.value) {
-            query.dateValue = dateValueInput.value;
-        } else {
-            delete query.dateValue;
-        }
-    } else {
-        delete query.dateType;
-        delete query.dateValue;
-    }
-
-    router.push({ path: '/archives', query });
+    submitSearchAndFilters();
 }
 
 function clearFilters() {
@@ -122,22 +91,11 @@ function clearFilters() {
     dateValueInput.value = '';
 }
 
-function handleClickOutside(event) {
-    if (isFilterOpen.value) {
-        const filterEl = document.getElementById('filter-dropdown');
-        const filterBtnEl = document.getElementById('sort-filter-btn');
-        if (filterEl && !filterEl.contains(event.target) && filterBtnEl && !filterBtnEl.contains(event.target)) {
-            isFilterOpen.value = false;
-        }
+watch(dateTypeValue, (val) => {
+    if (val !== 'choose') {
+        dateValueInput.value = '';
     }
-}
-
-function handleKeyDown(event) {
-    if (event.key === 'Escape') {
-        isFilterOpen.value = false;
-        toggleNav(false);
-    }
-}
+});
 
 watch(
     () => route.query,
@@ -161,10 +119,6 @@ watch(
 
 onMounted(() => {
     if (props.reader) document.body.classList.add('article-reader-body');
-    if (typeof document !== 'undefined') {
-        document.addEventListener('click', handleClickOutside);
-        document.addEventListener('keydown', handleKeyDown);
-    }
 });
 
 onBeforeUnmount(() => {
@@ -172,8 +126,6 @@ onBeforeUnmount(() => {
     if (typeof document !== 'undefined') {
         document.body.classList.remove('nav-open');
         document.body.style.overflow = '';
-        document.removeEventListener('click', handleClickOutside);
-        document.removeEventListener('keydown', handleKeyDown);
     }
 });
 </script>
@@ -328,12 +280,12 @@ onBeforeUnmount(() => {
                                             <option value="choose">Choose date</option>
                                         </select>
                                         <input
-                                            v-if="dateTypeValue === 'choose'"
                                             v-model="dateValueInput"
                                             type="date"
                                             id="date-filter-value"
                                             name="dateValue"
                                             class="archive-select mt-2"
+                                            :class="{ hidden: dateTypeValue !== 'choose' }"
                                         >
                                     </div>
                                 </div>
@@ -371,13 +323,7 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <!-- Mobile Nav Backdrop -->
-            <div
-                class="mobile-nav-backdrop"
-                :class="{ 'is-visible': isNavOpen }"
-                aria-hidden="true"
-                @click="toggleNav(false)"
-            ></div>
+
 
             <!-- Main Navigation Bar & Mobile Drawer -->
             <nav
@@ -442,6 +388,13 @@ onBeforeUnmount(() => {
                     </div>
                 </div>
             </nav>
+            <!-- Mobile Nav Backdrop -->
+            <div
+                class="mobile-nav-backdrop"
+                :class="{ 'is-visible': isNavOpen }"
+                aria-hidden="true"
+                @click="toggleNav(false)"
+            ></div>
         </header>
 
         <!-- Main Content Area -->
@@ -450,11 +403,11 @@ onBeforeUnmount(() => {
         </main>
 
         <!-- Footer Container -->
-        <footer v-if="!reader" id="footer-container" class="site-footer bg-[#1a050b] text-stone-300 mt-auto">
+        <footer v-if="!reader" id="footer-container" class="site-footer bg-[#1a050b] text-stone-300">
             <div class="footer-content max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div class="footer-brand-column">
                     <RouterLink to="/" class="footer-brand-lockup flex items-center gap-3 mb-3">
-                        <img src="/images/logo.jpg" alt="The Lens logo" class="footer-brand-logo w-10 h-10 rounded-full border border-rose-900/40">
+                        <img :src="logoImg" alt="The Lens logo" class="footer-brand-logo w-10 h-10 rounded-full border border-rose-900/40">
                         <span>
                             <strong class="footer-brand-name block text-white font-serif tracking-wider">THE LENS</strong>
                             <span class="footer-brand-tagline text-xs text-rose-300 italic">Basta Lente, Abante!</span>

@@ -9,22 +9,36 @@ defineProps({
     moreStories: { type: Array, default: () => [] },
     categorySections: { type: Array, default: () => [] },
 });
+
+function resolveRoutePath(url) {
+    if (!url) return '';
+    try {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            const parsed = new URL(url);
+            return parsed.pathname + parsed.search + parsed.hash;
+        }
+    } catch {
+        // Fallback if parsing fails
+    }
+    return url;
+}
 </script>
 
 <template>
     <PublicLayout title="Home">
-        <main id="home" class="max-w-7xl mx-auto px-6 py-8 w-full">
+        <main id="home" class="max-w-7xl mx-auto px-6 py-8">
+            <p id="search-message" class="hidden mb-5 text-sm text-wine"></p>
             <section class="home-feature-layout">
                 <div id="featured-article">
                     <article v-if="featuredArticle" class="featured-story" :data-article-id="featuredArticle.id">
-                        <RouterLink :to="featuredArticle.url" class="featured-image-trigger article-clickable" :aria-label="`Read article: ${featuredArticle.title}`">
+                        <RouterLink :to="resolveRoutePath(featuredArticle.url)" class="featured-image-trigger article-clickable" :aria-label="`Read article: ${featuredArticle.title}`">
                             <div class="article-image featured-image"><img :src="featuredArticle.imageUrl" :alt="featuredArticle.title" loading="lazy"></div>
                         </RouterLink>
                         <div class="article-meta"><span class="article-category-label">{{ featuredArticle.category }}</span><span class="article-meta-separator" aria-hidden="true">·</span><time>{{ featuredArticle.publishedAt }}</time></div>
-                        <h2 class="featured-title"><RouterLink :to="featuredArticle.url" class="article-title-button featured-headline-button">{{ featuredArticle.title }}</RouterLink></h2>
+                        <h2 class="featured-title"><RouterLink :to="resolveRoutePath(featuredArticle.url)" class="article-title-button featured-headline-button">{{ featuredArticle.title }}</RouterLink></h2>
                         <div class="featured-divider"></div>
                         <p class="featured-excerpt">{{ featuredArticle.excerpt }}</p>
-                        <p class="article-byline"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="featuredArticle.author" :to="featuredArticle.authorUrl" class="author-profile-link">{{ featuredArticle.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
+                        <p class="article-byline"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="featuredArticle.author" :to="resolveRoutePath(featuredArticle.authorUrl)" class="author-profile-link">{{ featuredArticle.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
                         <div class="article-stats" aria-label="Article engagement and reading time">
                             <span class="article-view-count" title="Views"><i class="fa-regular fa-eye" aria-hidden="true"></i><span>{{ featuredArticle.views.toLocaleString() }}</span><span class="stat-label">views</span></span>
                             <span class="article-read-time" title="Estimated reading time"><i class="fa-regular fa-clock" aria-hidden="true"></i><span>{{ featuredArticle.readMinutes }} min read</span></span>
@@ -41,11 +55,11 @@ defineProps({
                         <article v-for="article in latestArticles" :key="article.id" class="latest-item" :data-article-id="article.id">
                             <div class="latest-item-copy">
                                 <p class="latest-category">{{ article.category }}</p>
-                                <h3 class="latest-title"><RouterLink :to="article.url" class="article-title-button">{{ article.title }}</RouterLink></h3>
-                                <p class="article-byline text-xs"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="article.author" :to="article.authorUrl" class="author-profile-link">{{ article.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
+                                <h3 class="latest-title"><RouterLink :to="resolveRoutePath(article.url)" class="article-title-button">{{ article.title }}</RouterLink></h3>
+                                <p class="article-byline text-xs"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="article.author" :to="resolveRoutePath(article.authorUrl)" class="author-profile-link">{{ article.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
                                 <div class="article-stats text-xs"><span class="article-view-count"><i class="fa-regular fa-eye" aria-hidden="true"></i> <span>{{ article.views.toLocaleString() }}</span></span><span class="article-read-time"><i class="fa-regular fa-clock" aria-hidden="true"></i> <span>{{ article.readMinutes }} min</span></span></div>
                             </div>
-                            <RouterLink :to="article.url" class="latest-image-trigger article-clickable" :aria-label="`Read article: ${article.title}`"><div class="article-image latest-image"><img :src="article.imageUrl" :alt="article.title" loading="lazy"></div></RouterLink>
+                            <RouterLink :to="resolveRoutePath(article.url)" class="latest-image-trigger article-clickable" :aria-label="`Read article: ${article.title}`"><div class="article-image latest-image"><img :src="article.imageUrl" :alt="article.title" loading="lazy"></div></RouterLink>
                         </article>
                         <p v-if="!latestArticles.length" class="text-xs text-slate-400 py-3 italic">No recent releases yet.</p>
                     </div>
@@ -58,15 +72,15 @@ defineProps({
             </section>
 
             <section v-for="category in categorySections" :id="category.slug" :key="category.id" class="category-section mt-14">
-                <div class="section-heading"><h2>{{ category.name }}</h2><RouterLink :to="category.url" class="category-button">View all →</RouterLink></div>
+                <div class="section-heading"><h2>{{ category.name }}</h2><RouterLink :to="'/category/' + category.slug" class="category-button">View all →</RouterLink></div>
                 <div class="category-grid">
                     <article v-for="article in category.articles" :key="article.id" class="category-card" :data-article-id="article.id">
-                        <RouterLink :to="article.url" class="category-image-trigger article-clickable" :aria-label="`Read article: ${article.title}`"><div class="article-image small-image"><img :src="article.imageUrl" :alt="article.title" loading="lazy"></div></RouterLink>
+                        <RouterLink :to="resolveRoutePath(article.url)" class="category-image-trigger article-clickable" :aria-label="`Read article: ${article.title}`"><div class="article-image small-image"><img :src="article.imageUrl" :alt="article.title" loading="lazy"></div></RouterLink>
                         <div class="category-card-copy">
                             <div class="article-meta"><span class="article-category-label">{{ category.name }}</span><span class="article-meta-separator" aria-hidden="true">·</span><time>{{ article.publishedAt }}</time></div>
-                            <h3 class="category-card-title"><RouterLink :to="article.url" class="article-title-button">{{ article.title }}</RouterLink></h3>
+                            <h3 class="category-card-title"><RouterLink :to="resolveRoutePath(article.url)" class="article-title-button">{{ article.title }}</RouterLink></h3>
                             <p class="category-card-excerpt">{{ article.excerpt }}</p>
-                            <p class="article-byline text-xs"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="article.author" :to="article.authorUrl" class="author-profile-link">{{ article.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
+                            <p class="article-byline text-xs"><i class="fa-solid fa-pen-nib" aria-hidden="true"></i><span>By <RouterLink v-if="article.author" :to="resolveRoutePath(article.authorUrl)" class="author-profile-link">{{ article.author }}</RouterLink><strong v-else>The Lens Staff</strong></span></p>
                             <div class="article-stats text-xs"><span class="article-view-count"><i class="fa-regular fa-eye" aria-hidden="true"></i> <span>{{ article.views.toLocaleString() }}</span></span><span class="article-read-time"><i class="fa-regular fa-clock" aria-hidden="true"></i> <span>{{ article.readMinutes }} min read</span></span></div>
                         </div>
                     </article>

@@ -22,7 +22,7 @@ function apiPath(path) {
 
 async function ensureCsrfCookie() {
     if (csrfInitialized) return;
-    await apiClient.get('/sanctum/csrf-cookie');
+    await apiClient.get('/api/ping');   // triggers Laravel to set the CSRF cookie
     csrfInitialized = true;
 }
 
