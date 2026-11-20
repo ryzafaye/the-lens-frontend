@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+@theme {
+  --color-wine: #700f2b;
+  --color-burgundy: #4a091b;
+  --font-display: "Playfair Display", serif;
+  --font-body: "DM Sans", sans-serif;
+}
+
+:root {
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sidebar-maroon: #5c0a18;
+  --sidebar-maroon-hover: #7a0d20;
+  --sidebar-maroon-light: #fdf2f2;
+  --sidebar-maroon-border: #fecdca;
+}
+
+/* Standardized Article Titles Across The Lens System */
+.viewer-title,
+.manuscript-headline,
+#modal-headline,
+.review-box-title,
+.writer-article-title,
+.table-article-title,
+.top-article-title {
+  font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+}
+
+
+/* ==========================================================================
+   THE LENS — STANDARD GLOBAL TAB NAVBAR STYLING (HOVER & ACTIVE STATES)
+   Strict Standard: Entire navbar is visible without scroll, clean maroon active & hover
+   ========================================================================== */
+.manage-tabs-container,
+.review-tabs-container,
+.cover-tabs-container,
+.submit-tabs-nav,
+.feedback-filter-tabs,
+.write-tabs-container,
+.tabs-container {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px 8px !important;
+    border-bottom: 2px solid #eaecf0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 22px !important;
+    overflow: visible !important;
+    overflow-x: visible !important;
+    white-space: normal !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.manage-tabs-container::-webkit-scrollbar,
+.review-tabs-container::-webkit-scrollbar,
+.cover-tabs-container::-webkit-scrollbar,
+.submit-tabs-nav::-webkit-scrollbar,
+.feedback-filter-tabs::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+.manage-tab-btn,
+.review-tab-btn,
+.tab-filter-btn,
+.submit-tab-btn,
+.cover-tab-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 9px 14px 11px 14px !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 2.5px solid transparent !important;
+    margin-bottom: -2px !important;
+    font-family: var(--font-sans, 'DM Sans', sans-serif) !important;
+    font-size: 0.90rem !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    transition: color 0.18s ease, border-color 0.18s ease !important;
+    text-decoration: none !important;
+    outline: none !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+}
+
+.manage-tab-btn:hover,
+.review-tab-btn:hover,
+.tab-filter-btn:hover,
+.submit-tab-btn:hover,
+.cover-tab-btn:hover {
+    color: var(--sidebar-maroon, #5c0a18) !important;
+    background: transparent !important;
+}
+
+.manage-tab-btn.active,
+.manage-tab-btn[aria-selected="true"],
+.review-tab-btn.active,
+.review-tab-btn[aria-selected="true"],
+.tab-filter-btn.active,
+.tab-filter-btn[aria-selected="true"],
+.submit-tab-btn.active,
+.submit-tab-btn[aria-selected="true"],
+.cover-tab-btn.active,
+.cover-tab-btn[aria-selected="true"] {
+    color: var(--sidebar-maroon, #5c0a18) !important;
+    border-bottom: 2.5px solid var(--sidebar-maroon, #5c0a18) !important;
+    border-bottom-color: var(--sidebar-maroon, #5c0a18) !important;
+    background: transparent !important;
+    font-weight: 700 !important;
+}
+
+.tab-count-badge,
+.review-tab-badge,
+.tab-pill-count,
+.drafts-tab-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 22px !important;
+    height: 20px !important;
+    padding: 0 6px !important;
+    border-radius: 9999px !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    background-color: #f2f4f7 !important;
+    color: #475467 !important;
+    transition: background-color 0.18s ease, color 0.18s ease !important;
+}
+
+.manage-tab-btn:hover .tab-count-badge,
+.review-tab-btn:hover .review-tab-badge,
+.tab-filter-btn:hover .tab-pill-count,
+.submit-tab-btn:hover .drafts-tab-badge,
+.cover-tab-btn:hover .tab-count-badge,
+.cover-tab-btn:hover .review-tab-badge {
+    background-color: #fbebee !important;
+    color: var(--sidebar-maroon, #5c0a18) !important;
+}
+
+.manage-tab-btn.active .tab-count-badge,
+.manage-tab-btn[aria-selected="true"] .tab-count-badge,
+.review-tab-btn.active .review-tab-badge,
+.review-tab-btn[aria-selected="true"] .review-tab-badge,
+.tab-filter-btn.active .tab-pill-count,
+.tab-filter-btn[aria-selected="true"] .tab-pill-count,
+.submit-tab-btn.active .drafts-tab-badge,
+.submit-tab-btn[aria-selected="true"] .drafts-tab-badge,
+.cover-tab-btn.active .tab-count-badge,
+.cover-tab-btn.active .review-tab-badge,
+.cover-tab-btn[aria-selected="true"] .tab-count-badge,
+.cover-tab-btn[aria-selected="true"] .review-tab-badge {
+    background-color: #f8eef2 !important;
+    color: var(--sidebar-maroon, #5c0a18) !important;
+}
+
+/* ==========================================================================
+   THE LENS — GLOBAL TOAST NOTIFICATION DESIGN SYSTEM
+   Elevated dark modern pill with crisp border, soft drop-shadow and glowing indicator
+   ========================================================================== */
+.toast-container {
+    position: fixed !important;
+    bottom: 28px !important;
+    right: 28px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 10px !important;
+    z-index: 100000 !important;
+    pointer-events: none !important;
+}
+
+.toast-message,
+.toast {
+    pointer-events: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    padding: 12px 20px !important;
+    border-radius: 10px !important;
+    font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif) !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+    background-color: #101828 !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.35), 0 4px 12px -2px rgba(0, 0, 0, 0.2) !important;
+    animation: toastSlideIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    max-width: 480px !important;
+    line-height: 1.45 !important;
+}
+
+.toast-bullet-dot {
+    width: 9px !important;
+    height: 9px !important;
+    border-radius: 50% !important;
+    background-color: #12b76a !important;
+    box-shadow: 0 0 0 3.5px rgba(18, 183, 106, 0.25) !important;
+    flex-shrink: 0 !important;
+    display: inline-block !important;
+}
+
+/* Variant Dots & Icons */
+.toast-message.success .toast-bullet-dot,
+.toast.toast-success .toast-bullet-dot,
+.toast-message.success i,
+.toast.toast-success i {
+    background-color: #12b76a !important;
+    box-shadow: 0 0 0 3.5px rgba(18, 183, 106, 0.25) !important;
+    color: #12b76a !important;
+}
+
+.toast-message.warning .toast-bullet-dot,
+.toast.toast-warning .toast-bullet-dot,
+.toast-message.warning i,
+.toast.toast-warning i {
+    background-color: #f79009 !important;
+    box-shadow: 0 0 0 3.5px rgba(247, 144, 9, 0.25) !important;
+    color: #f79009 !important;
+}
+
+.toast-message.danger .toast-bullet-dot,
+.toast-message.error .toast-bullet-dot,
+.toast.toast-danger .toast-bullet-dot,
+.toast.toast-error .toast-bullet-dot,
+.toast-message.danger i,
+.toast-message.error i,
+.toast.toast-danger i,
+.toast.toast-error i {
+    background-color: #f04438 !important;
+    box-shadow: 0 0 0 3.5px rgba(240, 68, 56, 0.25) !important;
+    color: #f04438 !important;
+}
+
+.toast-message.info .toast-bullet-dot,
+.toast.toast-info .toast-bullet-dot,
+.toast-message.info i,
+.toast.toast-info i {
+    background-color: #0ba5ec !important;
+    box-shadow: 0 0 0 3.5px rgba(11, 165, 236, 0.25) !important;
+    color: #0ba5ec !important;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.toast-message.toast-dismissing,
+.toast.toast-dismissing {
+    opacity: 0 !important;
+    transform: translateY(10px) scale(0.95) !important;
+    transition: opacity 0.22s ease, transform 0.22s ease !important;
+}
+
+@media (max-width: 576px) {
+    .toast-container {
+        bottom: 16px !important;
+        right: 16px !important;
+        left: 16px !important;
+        align-items: stretch !important;
+    }
+    .toast-message,
+    .toast {
+        max-width: 100% !important;
+    }
+}
