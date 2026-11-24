@@ -24,3 +24,4 @@ Vite writes a static SPA to `dist/`. Configure the frontend host to serve `index
 See [docs/api-contract.md](docs/api-contract.md) for page-data endpoints, action routes, response shapes, and authentication/CORS requirements.
 
 The browser app uses Vue Router and a JSON API client. It does not require Laravel to serve its HTML page, and Laravel does not return Inertia responses.
+
