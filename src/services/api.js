@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-// In development / VS Code port forwarding / dev tunnels, use relative paths ('')
-// so requests are proxied by Vite's dev server to http://127.0.0.1:8000.
-// In production, use VITE_API_BASE_URL if configured, or fallback to relative paths.
-const apiOrigin = import.meta.env.DEV
+// In staging and production (e.g. Vercel), use VITE_API_BASE_URL (pointing to Render backend).
+// In local development, if VITE_API_BASE_URL is not set or defaults to localhost:8000,
+// use relative paths ('') so requests are proxied transparently by Vite's dev server without CORS hurdles.
+const rawApiBase = import.meta.env.VITE_API_BASE_URL;
+const apiOrigin = (import.meta.env.DEV && (!rawApiBase || rawApiBase === 'http://localhost:8000'))
     ? ''
-    : (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
+    : (rawApiBase || '').replace(/\/+$/, '');
 
 export const apiClient = axios.create({
     baseURL: apiOrigin,
