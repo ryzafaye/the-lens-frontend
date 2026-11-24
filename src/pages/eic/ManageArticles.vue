@@ -14,6 +14,7 @@ import {
     prepareContentForSaving,
 } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-manage-articles.css';
 import '../../assets/css/executive-modals.css';
 
@@ -51,18 +52,9 @@ const confirmActionType = ref('archive'); // 'archive' | 'restore' | 'delete'
 const actionTargetArticle = ref(null);
 const isProcessingAction = ref(false);
 
-// Toast
-const toastMessage = ref('');
-const toastType = ref('success');
-let toastTimer = null;
-
+// Toast replacement
 function showToast(msg, type = 'success') {
-    toastMessage.value = msg;
-    toastType.value = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toastMessage.value = '';
-    }, 3200);
+    globalShowToast(msg, type);
 }
 
 function resolveAvatarUrl(url) {
@@ -246,6 +238,16 @@ async function saveEdit() {
         showToast('Article title is required.', 'error');
         return;
     }
+
+    const confirmed = await confirmAction({
+        title: 'Save Article Changes',
+        message: 'Are you sure you want to save changes to this article?',
+        confirmText: 'Save Changes',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSavingEdit.value = true;
     try {
         const payload = {
@@ -283,12 +285,41 @@ async function saveEdit() {
 }
 
 // Confirmation Action Modal
-function promptAction(item, type) {
+async function promptAction(item, type) {
     closeCardMenus();
     actionTargetArticle.value = item;
     confirmActionType.value = type;
-    isConfirmActionOpen.value = true;
-    document.body.style.overflow = 'hidden';
+
+    let title = 'Confirm Action';
+    let message = `Are you sure you want to ${type} "${item?.title}"?`;
+    let confirmText = 'Confirm';
+    let modalType = 'maroon';
+
+    if (type === 'archive') {
+        title = 'Move to Archive';
+        message = `Are you sure you want to move "${item?.title}" to the archive?`;
+        confirmText = 'Archive Article';
+    } else if (type === 'restore') {
+        title = 'Restore Article';
+        message = `Are you sure you want to restore "${item?.title}" to published?`;
+        confirmText = 'Restore Article';
+    } else if (type === 'delete') {
+        title = 'Emergency Delete';
+        message = `Are you sure you want to permanently delete "${item?.title}"? All manuscript records will be permanently removed. This action cannot be undone.`;
+        confirmText = 'Emergency Delete';
+        modalType = 'danger';
+    }
+
+    const confirmed = await confirmAction({
+        title,
+        message,
+        confirmText,
+        cancelText: 'Cancel',
+        type: modalType,
+    });
+    if (!confirmed) return;
+
+    await executeConfirmedAction();
 }
 
 function closeConfirmActionModal() {
@@ -760,60 +791,5 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <!-- ====================================================================== -->
-        <!-- MODAL 3: Action Confirmation Modal (Archive/Restore/Delete)            -->
-        <!-- ====================================================================== -->
-        <div v-if="isConfirmActionOpen" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" @click.self="closeConfirmActionModal">
-            <div class="modal-card">
-                <div class="modal-body">
-                    <div class="modal-icon-header" :class="confirmActionType === 'delete' ? 'danger' : (confirmActionType === 'restore' ? 'success' : 'warning')">
-                        <i v-if="confirmActionType === 'archive'" class="fa-solid fa-box-archive"></i>
-                        <i v-else-if="confirmActionType === 'restore'" class="fa-solid fa-arrow-rotate-left"></i>
-                        <i v-else class="fa-regular fa-trash-can"></i>
-                    </div>
-                    <div>
-                        <h2 id="modal-title" class="modal-title">
-                            {{ confirmActionType === 'archive' ? 'Move to Archive' : (confirmActionType === 'restore' ? 'Restore Article' : 'Emergency Delete (Hard Delete)') }}
-                        </h2>
-                        <div v-if="confirmActionType === 'delete'">
-                            <p class="modal-description">
-                                Are you sure you want to permanently delete <strong>"{{ actionTargetArticle?.title }}"</strong>?
-                            </p>
-                            <p style="margin-top: 8px; color: #dc2626; font-size: 0.82rem; font-weight: 600; line-height: 1.4;">
-                                Warning: Emergency Delete performs a permanent hard delete directly on the database. All manuscript records and media attachments will be permanently removed. This action cannot be undone.
-                            </p>
-                        </div>
-                        <p v-else class="modal-description">
-                            Are you sure you want to {{ confirmActionType === 'archive' ? 'move to archive' : 'restore' }} <strong>"{{ actionTargetArticle?.title }}"</strong>?
-                        </p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="modal-btn modal-btn-cancel" @click="closeConfirmActionModal">Cancel</button>
-                    <button
-                        type="button"
-                        class="modal-btn"
-                        :class="confirmActionType === 'delete' ? 'modal-btn-danger' : 'modal-btn-confirm-primary'"
-                        :disabled="isProcessingAction"
-                        @click="executeConfirmedAction"
-                    >
-                        <i v-if="isProcessingAction" class="fa-solid fa-spinner fa-spin"></i>
-                        <i v-else-if="confirmActionType === 'delete'" class="fa-regular fa-trash-can"></i>
-                        <i v-else class="fa-solid fa-check"></i>
-                        <span>{{ isProcessingAction ? 'Processing…' : (confirmActionType === 'delete' ? 'Emergency Delete (Hard Delete)' : 'Confirm') }}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Global Toast Notification -->
-        <div v-if="toastMessage" class="toast-container">
-            <div class="custom-toast" :class="toastType">
-                <i v-if="toastType === 'success'" class="fa-solid fa-circle-check"></i>
-                <i v-else-if="toastType === 'warning'" class="fa-solid fa-triangle-exclamation"></i>
-                <i v-else class="fa-solid fa-circle-exclamation"></i>
-                <span>{{ toastMessage }}</span>
-            </div>
-        </div>
     </EicLayout>
 </template>

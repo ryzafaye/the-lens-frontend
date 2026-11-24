@@ -3,9 +3,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { logout } from '../services/api.js';
 import { currentUser, setAuthUser, clearAuthUser, useAuthStore } from '../stores/auth.js';
-import { optimizeCloudinaryUrl } from '../utils/image.js';
+import { optimizeCloudinaryUrl, resolveUserAvatar } from '../utils/image.js';
 import LogoutModal from '../components/LogoutModal.vue';
-import logoImg from '../assets/images/logo.jpg';
+const logoImg = '/images/logo.jpg';
 import '../assets/css/executive-dashboard.css';
 import '../assets/css/executive-modals.css';
 
@@ -18,8 +18,9 @@ const authStore = useAuthStore();
 
 // RBAC: President and Vice President have elevated administrative capabilities
 const isPresOrVp = computed(() => {
-    const roleName = user?.role || authStore.currentRole || '';
-    return ['President', 'Vice President', 'Executive Vice President'].includes(roleName);
+    const roleName = user?.role?.role_name || user?.role?.name || user?.role || authStore.currentRole || authStore.user?.role?.role_name || localStorage.getItem('userRole') || localStorage.getItem('execRole') || '';
+    const norm = String(roleName).toLowerCase().trim();
+    return norm.includes('president') || norm.includes('vp');
 });
 
 // RBAC: Only Auditor and Treasurer roles can access the Transparency module
@@ -35,15 +36,7 @@ const clockDisplay = ref('');
 let clockTimer = null;
 
 function resolveAvatarUrl(url) {
-    if (!url) return '/images/member-placeholder.svg';
-    const trimmed = String(url).trim();
-    if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('data:')) {
-        return optimizeCloudinaryUrl(trimmed, { width: 300, crop: 'limit' });
-    }
-    if (trimmed.startsWith('/')) {
-        return trimmed;
-    }
-    return `/${trimmed}`;
+    return resolveUserAvatar(url || user);
 }
 
 function updateClock() {
@@ -75,6 +68,21 @@ function toggleMobileNav() {
 function closeMobileNav() {
     isMobileNavOpen.value = false;
     document.body.classList.remove('mobile-nav-open');
+}
+
+function openPublicSite(event) {
+    if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.button === 1)) {
+        return;
+    }
+    if (event) event.preventDefault();
+    closeMobileNav();
+    router.push('/').then(() => {
+        if (window.location.pathname !== '/') {
+            window.location.href = '/';
+        }
+    }).catch(() => {
+        window.location.href = '/';
+    });
 }
 
 const showLogoutModal = ref(false);
@@ -153,9 +161,10 @@ onUnmounted(() => {
                     <div class="profile-avatar">
                         <img
                             id="sidebar-user-avatar"
-                            :src="resolveAvatarUrl(user?.profile_picture_url || user?.avatar)"
+                            :src="resolveAvatarUrl(user?.avatar_url || user?.profile_picture_url || user?.avatar)"
                             :alt="`${user?.full_name || 'Executive'} Avatar`"
                             loading="lazy"
+                            @error="(e) => e.target.src = '/images/member-placeholder.svg'"
                         >
                     </div>
                     <div id="sidebar-user-name" class="profile-name">{{ user?.full_name || 'Executive Officer' }}</div>
@@ -273,7 +282,7 @@ onUnmounted(() => {
                     <span>Profile Settings</span>
                 </router-link>
 
-                <a href="/" target="_blank" rel="noopener noreferrer" class="sidebar-footer-link">
+                <a href="/" class="sidebar-footer-link" @click="openPublicSite">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     <span>View public site</span>
                 </a>
@@ -332,9 +341,11 @@ onUnmounted(() => {
                     >
                         <div class="topbar-avatar-circle" title="User Profile">
                             <img
-                                :src="resolveAvatarUrl(user?.profile_picture_url || user?.avatar)"
+                                id="topbar-user-avatar"
+                                :src="resolveAvatarUrl(user?.avatar_url || user?.profile_picture_url || user?.avatar)"
                                 :alt="`${user?.full_name || 'Executive'} Profile Picture`"
                                 loading="lazy"
+                                @error="(e) => e.target.src = '/images/member-placeholder.svg'"
                             >
                         </div>
                         <span id="topbar-user-role" class="topbar-role-badge">{{ user?.role || 'Executive' }}</span>
@@ -352,9 +363,11 @@ onUnmounted(() => {
                 <div class="mobile-nav-profile">
                     <div class="mobile-nav-avatar">
                         <img
-                            :src="resolveAvatarUrl(user?.profile_picture_url || user?.avatar)"
+                            id="mobile-user-avatar"
+                            :src="resolveAvatarUrl(user?.avatar_url || user?.profile_picture_url || user?.avatar)"
                             :alt="`${user?.full_name || 'Executive'} Avatar`"
                             loading="lazy"
+                            @error="(e) => e.target.src = '/images/member-placeholder.svg'"
                         >
                     </div>
                     <div class="mobile-nav-user-info">
@@ -471,7 +484,7 @@ onUnmounted(() => {
                         <span>Profile Settings</span>
                     </router-link>
 
-                    <a href="/" target="_blank" rel="noopener noreferrer" class="mobile-nav-footer-link">
+                    <a href="/" class="mobile-nav-footer-link" @click="openPublicSite">
                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                         <span>View public site</span>
                     </a>
@@ -498,6 +511,7 @@ onUnmounted(() => {
             :is-open="showLogoutModal"
             :is-logging-out="isLoggingOut"
             @close="showLogoutModal = false"
+            @cancel="showLogoutModal = false"
             @confirm="confirmLogout"
         />
     </div>

@@ -325,6 +325,10 @@ onMounted(async () => {
                             <span class="viewer-by">By <strong id="viewer-author">{{ activeArticle.author }}</strong></span>
                         </div>
                     </div>
+                    <div v-if="activeArticle.remarks && (activeArticle.status || '').toLowerCase().includes('revision') && !activeArticle.status.toLowerCase().includes('head') && !activeArticle.status.toLowerCase().includes('section')" class="viewer-remarks-container" style="margin-bottom: 20px; padding: 12px 16px; background-color: #fff1f2; border-left: 4px solid #e11d48; border-radius: 4px;">
+                        <h4 style="margin: 0 0 4px; font-size: 0.85rem; font-weight: 700; color: #9f1239;">Revision Remarks:</h4>
+                        <p style="margin: 0; font-size: 0.85rem; color: #4c0519; line-height: 1.55; white-space: pre-wrap;">{{ activeArticle.remarks }}</p>
+                    </div>
                     <div id="viewer-content" class="viewer-content-text" v-html="formatCleanArticleContent(activeArticle.content || activeArticle.excerpt)"></div>
                 </div>
             </div>

@@ -7,7 +7,8 @@ import {
     updatePassword,
 } from '../../services/api.js';
 import { setAuthUser, currentUser } from '../../stores/auth.js';
-import { optimizeCloudinaryUrl } from '../../utils/image.js';
+import { optimizeCloudinaryUrl, resolveUserAvatar } from '../../utils/image.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-profile-settings.css';
 
 // State
@@ -32,18 +33,9 @@ const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
 const isSavingPassword = ref(false);
 
-// Toast notification
-const toastMessage = ref('');
-const toastType = ref('success');
-let toastTimer = null;
-
+// Toast replacement
 function showToast(msg, type = 'success') {
-    toastMessage.value = msg;
-    toastType.value = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toastMessage.value = '';
-    }, 3400);
+    globalShowToast(msg, type);
 }
 
 // Password criteria checks
@@ -64,15 +56,7 @@ const canSubmitPassword = computed(() => {
 });
 
 function resolveAvatarUrl(url) {
-    if (!url) return '/images/member-placeholder.svg';
-    const trimmed = String(url).trim();
-    if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('data:')) {
-        return optimizeCloudinaryUrl(trimmed, { width: 250, crop: 'limit' });
-    }
-    if (trimmed.startsWith('/')) {
-        return trimmed;
-    }
-    return `/${trimmed}`;
+    return resolveUserAvatar(url);
 }
 
 async function loadProfile() {
@@ -103,8 +87,8 @@ function handleFileChange(e) {
         showToast('Please select a valid image file.', 'error');
         return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-        showToast('Image size cannot exceed 2MB.', 'error');
+    if (file.size > 3 * 1024 * 1024) {
+        showToast('Image size cannot exceed 3MB.', 'error');
         return;
     }
 
@@ -135,6 +119,15 @@ async function handleSaveProfile() {
         showToast('Full name is required.', 'error');
         return;
     }
+
+    const confirmed = await confirmAction({
+        title: 'Save Profile Changes',
+        message: 'Are you sure you want to update your profile information?',
+        confirmText: 'Save Profile',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSavingProfile.value = true;
     try {
@@ -192,6 +185,15 @@ async function handleSaveProfile() {
 
 async function handleSavePassword() {
     if (!canSubmitPassword.value) return;
+
+    const confirmed = await confirmAction({
+        title: 'Update Password',
+        message: 'Are you sure you want to change your account password?',
+        confirmText: 'Change Password',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSavingPassword.value = true;
     try {

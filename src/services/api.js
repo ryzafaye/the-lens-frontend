@@ -9,6 +9,7 @@ const apiOrigin = import.meta.env.DEV
 
 export const apiClient = axios.create({
     baseURL: apiOrigin,
+    timeout: 15000,
     withCredentials: true,
     withXSRFToken: true,
     headers: {
@@ -57,7 +58,7 @@ export async function ensureCsrfToken(force = false) {
     if (csrfInitialized && !force) return;
 
     if (!csrfPromise || force) {
-        csrfPromise = apiClient.get('/api/ping')
+        csrfPromise = apiClient.get('/api/ping', { timeout: 5000 })
             .then((response) => {
                 if (response.data?.csrf_token) {
                     apiClient.defaults.headers.common['X-CSRF-TOKEN'] = response.data.csrf_token;
@@ -66,6 +67,7 @@ export async function ensureCsrfToken(force = false) {
             })
             .catch((err) => {
                 console.warn('Could not initialize CSRF token via /api/ping:', err.message);
+                csrfInitialized = true; // Avoid blocking mutations if ping endpoint fails
             })
             .finally(() => {
                 csrfPromise = null;
@@ -77,6 +79,10 @@ export async function ensureCsrfToken(force = false) {
 
 // Request Interceptor: Ensure CSRF token only for mutating methods (POST, PUT, PATCH, DELETE)
 apiClient.interceptors.request.use(async (config) => {
+    const url = config.url || '';
+    if (url.includes('/login') || url.includes('/ping') || url.includes('/csrf-cookie')) {
+        return config;
+    }
     const method = (config.method || 'get').toUpperCase();
     if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
         await ensureCsrfToken();
@@ -113,7 +119,6 @@ apiClient.interceptors.response.use(
 );
 
 export async function login(studentNumber, password) {
-    await ensureCsrfToken();
     clearApiCache();
 
     const response = await apiClient.post('/api/login', {
@@ -124,10 +129,6 @@ export async function login(studentNumber, password) {
     if (response.data?.csrf_token) {
         apiClient.defaults.headers.common['X-CSRF-TOKEN'] = response.data.csrf_token;
         csrfInitialized = true;
-    } else {
-        // Session regenerated upon login; fetch fresh token
-        csrfInitialized = false;
-        await ensureCsrfToken(true);
     }
 
     return response.data;
@@ -304,6 +305,19 @@ export async function returnSectionHeadArticleForRevision(articleId, remarks) {
     return response.data;
 }
 
+export async function resubmitArticle(articleId, data = {}) {
+    clearApiCache('section_head_');
+    clearApiCache('section_');
+    clearApiCache('eic_');
+    clearApiCache('exec_');
+    clearApiCache('writer_');
+    clearApiCache('media_');
+    clearApiCache('cartoonist_');
+    clearApiCache('mpc_');
+    const response = await apiClient.post(`/api/articles/${articleId}/resubmit`, data);
+    return response.data;
+}
+
 export async function getSectionHeadArticles(forceFresh = false) {
     const cacheKey = 'section_head_articles';
     if (!forceFresh) {
@@ -457,6 +471,7 @@ export async function getEicMediaDesk(forceFresh = false) {
 
 export async function approveEicMedia(id) {
     clearApiCache('eic_');
+    clearApiCache('mpc_');
     const response = await apiClient.post(`/api/eic/media/${id}/approve`);
     return response.data;
 }
@@ -728,6 +743,467 @@ export async function getExecutiveFeedback(forceFresh = false) {
 
 export async function getExecutiveTransparency() {
     const response = await apiClient.get('/api/executive/transparency');
+    return response.data;
+}
+
+// =========================================================================
+// Media & Public Communications (M&PC) Portal APIs
+// =========================================================================
+
+export async function getMpcDashboard(forceFresh = false) {
+    const cacheKey = 'mpc_dashboard';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/dashboard');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getMpcPublishArticle(forceFresh = false) {
+    const cacheKey = 'mpc_publish_article';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/publish-article');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function publishMpcArticleRelease(id, coverId = null) {
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    clearApiCache('exec_');
+    const payload = coverId ? { cover_id: coverId } : {};
+    const response = await apiClient.post(`/api/mpc/articles/${id}/publish`, payload);
+    return response.data;
+}
+
+export async function unpublishMpcArticleRelease(id) {
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    clearApiCache('exec_');
+    const response = await apiClient.post(`/api/mpc/articles/${id}/unpublish`);
+    return response.data;
+}
+
+export async function assignMpcArticleCover(id, coverId) {
+    clearApiCache('mpc_');
+    const response = await apiClient.post(`/api/mpc/articles/${id}/assign-cover`, { cover_id: coverId });
+    return response.data;
+}
+
+export async function returnMpcArticleForRevision(id, remarks) {
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/mpc/articles/${id}/revision`, { remarks });
+    return response.data;
+}
+
+export async function getMpcMediaDesk(forceFresh = false) {
+    const cacheKey = 'mpc_media_desk';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/media-desk');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function endorseMpcMedia(id) {
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/mpc/media/${id}/endorse`);
+    return response.data;
+}
+
+export async function returnMpcMediaForRevision(id, remarks) {
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/mpc/media/${id}/revision`, { remarks });
+    return response.data;
+}
+
+export async function resubmitMpcMedia(id, formData) {
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/mpc/media/${id}/resubmit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+export async function submitMpcMedia(formData) {
+    clearApiCache('mpc_');
+    const response = await apiClient.post('/api/mpc/submit-media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+export async function getMpcManageMedia(forceFresh = false) {
+    const cacheKey = 'mpc_manage_media';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/manage-media');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getMpcMyArticles(forceFresh = false) {
+    const cacheKey = 'mpc_my_articles';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/manage-my-articles');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getMpcSubmitData(params = {}, forceFresh = false) {
+    const cacheKey = `mpc_submit_data_${params.draft_id || ''}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/submit-article', { params });
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function storeMpcArticle(payload) {
+    clearApiCache('mpc_');
+    clearApiCache('writer_');
+    const response = await apiClient.post('/api/mpc/submit-article', payload);
+    return response.data;
+}
+
+export async function deleteMpcDraft(id) {
+    clearApiCache('mpc_');
+    const response = await apiClient.delete(`/api/mpc/drafts/${id}`);
+    return response.data;
+}
+
+export async function getMpcActivityLogs(params = {}, forceFresh = false) {
+    const cacheKey = `mpc_logs_${params.search || ''}_${params.date_filter || 'all'}_${params.date || ''}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/mpc/activity-logs', { params });
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getMpcTransparency() {
+    const response = await apiClient.get('/api/mpc/transparency');
+    return response.data;
+}
+
+export async function getMpcProfileSettings() {
+    const response = await apiClient.get('/api/mpc/profile-settings');
+    return response.data;
+}
+
+// ==========================================
+// MEDIA & COMMUNICATION PORTAL ENDPOINTS
+// ==========================================
+
+export async function getMediaDashboard(forceFresh = false) {
+    const cacheKey = 'media_dashboard';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/media/dashboard');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getMediaManageMedia(forceFresh = false) {
+    const cacheKey = 'media_manage_media';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/media/manage-media');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function submitMediaPhoto(formData) {
+    clearApiCache('media_');
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post('/api/media/submit-media', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    clearApiCache('media_');
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    return response.data;
+}
+
+export async function endorseMediaPhoto(id) {
+    clearApiCache('media_');
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/media/${id}/endorse`);
+    return response.data;
+}
+
+export async function returnMediaPhotoForRevision(id, remarks) {
+    clearApiCache('media_');
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/media/${id}/revision`, { remarks });
+    return response.data;
+}
+
+export async function resubmitMediaPhoto(id, formData) {
+    clearApiCache('media_');
+    clearApiCache('mpc_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/media/${id}/resubmit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+export async function getMediaMyArticles(forceFresh = false) {
+    const cacheKey = 'media_my_articles';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/media/manage-articles');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getMediaSubmitData(params = {}, forceFresh = false) {
+    const cacheKey = `media_submit_data_${params.draft_id || ''}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/media/submit-article', { params });
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function storeMediaArticle(payload) {
+    clearApiCache('media_');
+    clearApiCache('writer_');
+    const response = await apiClient.post('/api/media/submit-article', payload);
+    return response.data;
+}
+
+export async function deleteMediaDraft(id) {
+    clearApiCache('media_');
+    const response = await apiClient.delete(`/api/media/drafts/${id}`);
+    return response.data;
+}
+
+export async function getMediaProfileSettings() {
+    const response = await apiClient.get('/api/media/profile-settings');
+    return response.data;
+}
+
+// ==========================================
+// CARTOONIST PORTAL ENDPOINTS
+// ==========================================
+
+export async function getCartoonistDashboard(forceFresh = false) {
+    const cacheKey = 'cartoonist_dashboard';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/cartoonist/dashboard');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getCartoonistManageCartoons(forceFresh = false) {
+    const cacheKey = 'cartoonist_manage_cartoons';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/cartoonist/manage-cartoons');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function submitCartoonIllustration(formData) {
+    clearApiCache('cartoonist_');
+    clearApiCache('eic_');
+    const response = await apiClient.post('/api/cartoonist/submit-cartoon', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+export async function getCartoonistDesk(forceFresh = false) {
+    const cacheKey = 'cartoonist_desk';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/cartoonist/cartoon-desk');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function endorseCartoonIllustration(id) {
+    clearApiCache('cartoonist_');
+    clearApiCache('eic_');
+    clearApiCache('mpc_');
+    const response = await apiClient.post(`/api/cartoonist/cartoons/${id}/endorse`);
+    return response.data;
+}
+
+export async function returnCartoonIllustrationForRevision(id, remarks) {
+    clearApiCache('cartoonist_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/cartoonist/cartoons/${id}/revision`, { remarks });
+    return response.data;
+}
+
+export async function resubmitCartoonIllustration(id, formData) {
+    clearApiCache('cartoonist_');
+    clearApiCache('eic_');
+    const response = await apiClient.post(`/api/cartoonist/cartoons/${id}/resubmit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+export async function getCartoonistMyArticles(forceFresh = false) {
+    const cacheKey = 'cartoonist_my_articles';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/cartoonist/manage-articles');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getCartoonistSubmitData(params = {}, forceFresh = false) {
+    const cacheKey = `cartoonist_submit_data_${params.draft_id || ''}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/cartoonist/submit-article', { params });
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function storeCartoonistArticle(payload) {
+    clearApiCache('cartoonist_');
+    clearApiCache('writer_');
+    const response = await apiClient.post('/api/cartoonist/submit-article', payload);
+    return response.data;
+}
+
+export async function deleteCartoonistDraft(id) {
+    clearApiCache('cartoonist_');
+    const response = await apiClient.delete(`/api/cartoonist/drafts/${id}`);
+    return response.data;
+}
+
+export async function getCartoonistProfileSettings() {
+    const response = await apiClient.get('/api/cartoonist/profile-settings');
+    return response.data;
+}
+
+// ============================================================================
+// Public Reader Website API Endpoints
+// ============================================================================
+
+export async function getPublicHome(forceFresh = false) {
+    const cacheKey = 'public_home';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey, 60000);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/public/home');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getPublicCategory(slug, page = 1, forceFresh = false) {
+    const cacheKey = `public_category_${slug}_${page}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey, 60000);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get(`/api/public/category/${slug}`, { params: { page } });
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getPublicArticle(slug, forceFresh = false) {
+    const cacheKey = `public_article_${slug}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey, 30000);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get(`/api/public/article/${slug}`);
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function shareArticle(id) {
+    const response = await apiClient.post(`/api/public/article/${id}/share`);
+    return response.data;
+}
+
+export async function getPublicArchives(params = {}, forceFresh = false) {
+    const queryStr = new URLSearchParams(params).toString();
+    const cacheKey = `public_archives_${queryStr}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey, 30000);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/public/archives', { params });
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getPublicAuthor(id, forceFresh = false) {
+    const cacheKey = `public_author_${id}`;
+    if (!forceFresh) {
+        const cached = getCache(cacheKey, 60000);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get(`/api/public/author/${id}`);
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function getPublicOfficers(forceFresh = false) {
+    const cacheKey = 'public_officers_list';
+    if (!forceFresh) {
+        const cached = getCache(cacheKey, 60000);
+        if (cached) return cached;
+    }
+    const response = await apiClient.get('/api/public/officers');
+    setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function submitPublicFeedback(payload) {
+    const response = await apiClient.post('/api/public/feedback', payload);
     return response.data;
 }
 

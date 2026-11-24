@@ -8,16 +8,17 @@
 /* --------------------------------------------------------------------------
    1. PAGE HEADER (Pure Minimalist, Title + Newest/Oldest Sort Control)
    -------------------------------------------------------------------------- */
-.content-container {
+.review-articles-page.content-container,
+.review-articles-page .content-container {
     gap: 16px !important;
 }
 
-.page-title-section {
+.review-articles-page .page-title-section {
     margin: 0 !important;
     margin-bottom: 0 !important;
 }
 
-.page-header-row {
+.review-articles-page .page-header-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -25,7 +26,7 @@
     flex-wrap: wrap;
 }
 
-.page-title {
+.review-articles-page .page-title {
     font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
     font-size: 1.75rem;
     font-weight: 700;
@@ -656,6 +657,20 @@
     box-shadow: 0 0 0 2px rgba(92, 10, 24, 0.15);
 }
 
+.viewer-excerpt {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: #475467;
+    font-weight: 500;
+    margin: 16px 0 22px 0;
+    font-style: italic;
+    border-left: 3.5px solid var(--sidebar-maroon, #5c0a18);
+    padding: 10px 18px;
+    background: #faf8f9;
+    border-radius: 0 8px 8px 0;
+    box-sizing: border-box;
+}
+
 .viewer-excerpt[contenteditable="true"] {
     cursor: text;
     transition: background-color 0.15s ease, box-shadow 0.15s ease;
@@ -752,52 +767,185 @@
     font-weight: 600;
 }
 
+/* Typography & Rich Article Content Styling */
 .manuscript-text-content,
 .manuscript-prose,
+.viewer-content-text,
 #modal-body,
 #dash-modal-body {
     font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif) !important;
     font-size: 1.05rem !important;
-    line-height: 1.75 !important;
+    line-height: 1.8 !important;
     color: #1f2937 !important;
     word-break: break-word !important;
-    text-align: justify !important;
-    text-justify: inter-word !important;
+    text-align: justify;
+    text-justify: inter-word;
 }
 
-.manuscript-text-content *,
-.manuscript-text-content p,
-.manuscript-text-content div,
-.manuscript-prose *,
-.manuscript-prose p,
-.manuscript-prose div,
-#modal-body *,
-#modal-body p,
-#modal-body div,
-#dash-modal-body *,
-#dash-modal-body p,
-#dash-modal-body div {
-    margin: 0 !important;
-    margin-block-start: 0 !important;
-    margin-block-end: 0 !important;
-    padding: 0 !important;
-    font-family: inherit !important;
-    font-size: inherit !important;
-    line-height: inherit !important;
-    color: inherit !important;
-    text-align: justify !important;
-    text-justify: inter-word !important;
-}
-
+/* Paragraphs and line spacing */
 .manuscript-text-content div,
 .manuscript-text-content p,
 .manuscript-prose div,
 .manuscript-prose p,
+.viewer-content-text div,
+.viewer-content-text p,
 #modal-body div,
 #modal-body p,
 #dash-modal-body div,
 #dash-modal-body p {
-    min-height: 1.75em !important;
+    line-height: 1.8 !important;
+    color: inherit;
+    min-height: 1.75em;
+    margin-bottom: 0.85em;
+}
+
+/* Headings */
+.manuscript-text-content h1,
+.viewer-content-text h1,
+#modal-body h1 {
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-size: 1.75rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    color: #101828 !important;
+    margin-top: 1.4em !important;
+    margin-bottom: 0.5em !important;
+}
+
+.manuscript-text-content h2,
+.viewer-content-text h2,
+#modal-body h2 {
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-size: 1.45rem !important;
+    font-weight: 700 !important;
+    line-height: 1.35 !important;
+    color: #101828 !important;
+    margin-top: 1.25em !important;
+    margin-bottom: 0.45em !important;
+}
+
+.manuscript-text-content h3,
+.viewer-content-text h3,
+#modal-body h3 {
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    color: #101828 !important;
+    margin-top: 1.1em !important;
+    margin-bottom: 0.4em !important;
+}
+
+.manuscript-text-content h4,
+.viewer-content-text h4,
+#modal-body h4 {
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-size: 1.12rem !important;
+    font-weight: 700 !important;
+    line-height: 1.4 !important;
+    color: #101828 !important;
+    margin-top: 0.9em !important;
+    margin-bottom: 0.35em !important;
+}
+
+/* Blockquotes */
+.manuscript-text-content blockquote,
+.viewer-content-text blockquote,
+#modal-body blockquote {
+    margin: 1.25em 0 !important;
+    padding: 10px 18px !important;
+    border-left: 4px solid var(--sidebar-maroon, #5c0a18) !important;
+    background: #faf8f9 !important;
+    color: #475467 !important;
+    font-style: italic !important;
+    font-size: 1.02rem !important;
+    border-radius: 0 6px 6px 0 !important;
+}
+
+/* Lists and Bullets */
+.manuscript-text-content ul,
+.manuscript-text-content ol,
+.viewer-content-text ul,
+.viewer-content-text ol,
+#modal-body ul,
+#modal-body ol {
+    margin: 0.75em 0 0.75em 1.5em !important;
+    padding-left: 1.25em !important;
+}
+
+.manuscript-text-content li,
+.viewer-content-text li,
+#modal-body li {
+    margin-bottom: 0.35em !important;
+    line-height: 1.75 !important;
+}
+
+.manuscript-text-content .article-bullet-item,
+.viewer-content-text .article-bullet-item {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    margin-bottom: 0.35em !important;
+    line-height: 1.75 !important;
+}
+
+/* Inline Styles (Bold, Italic, Underline, Links) */
+.manuscript-text-content strong,
+.manuscript-text-content b,
+.viewer-content-text strong,
+.viewer-content-text b,
+#modal-body strong,
+#modal-body b {
+    font-weight: 700 !important;
+    color: #111827 !important;
+}
+
+.manuscript-text-content em,
+.manuscript-text-content i,
+.viewer-content-text em,
+.viewer-content-text i,
+#modal-body em,
+#modal-body i {
+    font-style: italic !important;
+}
+
+.manuscript-text-content u,
+.viewer-content-text u,
+#modal-body u {
+    text-decoration: underline !important;
+}
+
+.manuscript-text-content a,
+.viewer-content-text a,
+#modal-body a {
+    color: var(--sidebar-maroon, #5c0a18) !important;
+    text-decoration: underline !important;
+}
+
+/* Preserve safe text alignments */
+.manuscript-text-content [style*="text-align: center"],
+.viewer-content-text [style*="text-align: center"],
+#modal-body [style*="text-align: center"] {
+    text-align: center !important;
+}
+
+.manuscript-text-content [style*="text-align: right"],
+.viewer-content-text [style*="text-align: right"],
+#modal-body [style*="text-align: right"] {
+    text-align: right !important;
+}
+
+.manuscript-text-content [style*="text-align: left"],
+.viewer-content-text [style*="text-align: left"],
+#modal-body [style*="text-align: left"] {
+    text-align: left !important;
+}
+
+.manuscript-text-content [style*="text-align: justify"],
+.viewer-content-text [style*="text-align: justify"],
+#modal-body [style*="text-align: justify"] {
+    text-align: justify !important;
+    text-justify: inter-word !important;
 }
 
 /* Mandatory Remarks Section */
@@ -1296,4 +1444,85 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
+}
+
+/* ==========================================================================
+   EXISTING EDITORIAL FEEDBACK CALLOUT (Revision Tab / Manuscript Modal)
+   ========================================================================== */
+.remarks-alert-box {
+    margin: 18px 0 24px 0 !important;
+    padding: 16px 18px !important;
+    background-color: #fff1f2 !important;
+    border: 1px solid #fecdd3 !important;
+    border-left: 4px solid #700f2b !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(112, 15, 43, 0.06) !important;
+    box-sizing: border-box !important;
+}
+
+.remarks-alert-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin-bottom: 10px !important;
+    flex-wrap: wrap !important;
+}
+
+.remarks-alert-title {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.remarks-alert-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 50% !important;
+    background-color: rgba(112, 15, 43, 0.12) !important;
+    color: #700f2b !important;
+    font-size: 0.78rem !important;
+    flex-shrink: 0 !important;
+}
+
+.remarks-alert-heading {
+    font-size: 0.84rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: #700f2b !important;
+    line-height: 1.2 !important;
+}
+
+.remarks-status-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 3px 10px !important;
+    background-color: #ffe4e6 !important;
+    border: 1px solid #fecdd3 !important;
+    border-radius: 9999px !important;
+    color: #9f1239 !important;
+    font-size: 0.70rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.2 !important;
+}
+
+.remarks-alert-content {
+    background-color: #ffffff !important;
+    border: 1px solid #fecdd3 !important;
+    border-radius: 6px !important;
+    padding: 12px 16px !important;
+    color: #374151 !important;
+    font-size: 0.92rem !important;
+    line-height: 1.6 !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    box-shadow: inset 0 1px 2px rgba(112, 15, 43, 0.03) !important;
+    font-family: inherit !important;
 }

@@ -8,6 +8,7 @@ import {
     toggleEicAccountStatus,
 } from '../../services/api.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-manage-accounts.css';
 
 // State
@@ -32,20 +33,9 @@ const editRoleId = ref('');
 const isDeactivateModalOpen = ref(false);
 const officerToDeactivate = ref(null);
 
-// Toast notification (Default Lens Bullet Dot Style)
-const toast = ref({
-    show: false,
-    message: '',
-    type: 'success',
-});
-let toastTimer = null;
-
+// Toast notification replacement
 function showToast(message, type = 'success') {
-    if (toastTimer) clearTimeout(toastTimer);
-    toast.value = { show: true, message, type };
-    toastTimer = setTimeout(() => {
-        toast.value.show = false;
-    }, 3400);
+    globalShowToast(message, type);
 }
 
 // Fallback roles for resilience
@@ -208,6 +198,15 @@ async function handleAddOfficer() {
         return;
     }
 
+    const confirmed = await confirmAction({
+        title: 'Create Officer Account',
+        message: `Are you sure you want to create an account for ${newFullName.value.trim()}?`,
+        confirmText: 'Create Account',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     try {
         const payload = {
@@ -260,12 +259,22 @@ function closeEditRoleModal() {
 async function handleSaveRole() {
     if (!officerToEdit.value || !editRoleId.value) return;
 
+    const id = officerToEdit.value.id;
+    const matchedRole = displayRoles.value.find(r => String(r.id) === String(editRoleId.value));
+    const roleName = matchedRole ? matchedRole.role_name : '';
+    const officerName = officerToEdit.value?.name || 'Officer';
+
+    const confirmed = await confirmAction({
+        title: 'Update Officer Role',
+        message: `Are you sure you want to change the role of ${officerName} to ${roleName}?`,
+        confirmText: 'Save Role',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     try {
-        const id = officerToEdit.value.id;
-        const matchedRole = displayRoles.value.find(r => String(r.id) === String(editRoleId.value));
-        const roleName = matchedRole ? matchedRole.role_name : '';
-
         const res = await updateEicAccountRole(id, {
             role_id: editRoleId.value,
             role: roleName,
@@ -284,7 +293,6 @@ async function handleSaveRole() {
             await loadData();
         }
 
-        const officerName = officerToEdit.value?.name || 'Officer';
         closeEditRoleModal();
         showToast(res?.message || `Role for ${officerName} updated to ${roleName}.`, 'success');
     } catch (err) {
@@ -297,9 +305,17 @@ async function handleSaveRole() {
 }
 
 // Deactivate / Reactivate
-function openDeactivateModal(officer) {
+async function openDeactivateModal(officer) {
     officerToDeactivate.value = officer;
-    isDeactivateModalOpen.value = true;
+    const confirmed = await confirmAction({
+        title: 'Deactivate Account',
+        message: `Are you sure you want to deactivate ${officer.name}'s account? The officer's administrative credentials will be temporarily suspended.`,
+        confirmText: 'Deactivate Account',
+        cancelText: 'Cancel',
+        type: 'danger',
+    });
+    if (!confirmed) return;
+    await handleConfirmDeactivate();
 }
 
 function closeDeactivateModal() {
@@ -327,6 +343,15 @@ async function handleConfirmDeactivate() {
 }
 
 async function handleReactivate(officer) {
+    const confirmed = await confirmAction({
+        title: 'Reactivate Account',
+        message: `Are you sure you want to reactivate ${officer.name}'s account?`,
+        confirmText: 'Reactivate',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     try {
         const res = await toggleEicAccountStatus(officer.id, 'active');
@@ -611,53 +636,6 @@ onMounted(() => {
         </div>
 
         <!-- ====================================================================== -->
-        <!-- MODAL 2: DEACTIVATION CONFIRMATION DIALOG                             -->
-        <!-- ====================================================================== -->
-        <div
-            v-if="isDeactivateModalOpen"
-            id="deactivate-confirm-modal"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="deactivate-dialog-title"
-            @click.self="closeDeactivateModal"
-        >
-            <div class="modal-card">
-                <div class="modal-header-simple">
-                    <h3 id="deactivate-dialog-title" class="modal-title font-semibold text-base text-rose-700">
-                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-                        <span>Confirm Account Deactivation</span>
-                    </h3>
-                    <button type="button" class="viewer-close-btn" @click="closeDeactivateModal" aria-label="Close dialog">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-
-                <div class="modal-confirm-body">
-                    <p>
-                        Are you sure you want to deactivate <strong class="officer-target-highlight">{{ officerToDeactivate?.name }}</strong>?
-                    </p>
-                    <p class="text-xs text-stone-500">
-                        The officer's administrative credentials will be temporarily suspended. You can reactivate their account at any time.
-                    </p>
-                </div>
-
-                <div class="modal-confirm-footer">
-                    <button
-                        type="button"
-                        class="btn-modal-submit-deactivate"
-                        :disabled="isSubmitting"
-                        @click="handleConfirmDeactivate"
-                    >
-                        <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-                        <i v-else class="fa-solid fa-user-slash"></i>
-                        <span>{{ isSubmitting ? 'Deactivating...' : 'Deactivate Account' }}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ====================================================================== -->
         <!-- MODAL 3: EDIT OFFICER ROLE MODAL                                      -->
         <!-- ====================================================================== -->
         <div
@@ -725,14 +703,6 @@ onMounted(() => {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
-
-        <!-- Toast Notifications Fallback Container -->
-        <div v-if="toast.show" id="toast-container" class="toast-container" aria-live="polite">
-            <div class="toast-message" :class="toast.type">
-                <span class="toast-bullet-dot"></span>
-                <span>{{ toast.message }}</span>
             </div>
         </div>
     </EicLayout>

@@ -56,10 +56,13 @@
 }
 
 /* Table Action Column & Manage Button */
-.data-table th.text-right,
 .data-table td.text-right {
     text-align: right;
     padding-right: 18px;
+}
+
+.data-table th.text-right {
+    text-align: center !important;
 }
 
 .table-manage-btn {
@@ -455,38 +458,116 @@
     box-sizing: border-box !important;
 }
 
-/* Lessened article title column width to give full room to action buttons */
-.pending-approvals-table th:first-child,
-.pending-approvals-table td:first-child {
-    width: 38% !important;
-    padding-left: 14px !important;
-    padding-right: 10px !important;
+/* ==========================================================================
+   SECTION HEAD 3-COLUMN PENDING APPROVALS TABLE (Title, Date, Action)
+   - Article Title: Generous 60% width with left-aligned headline stack
+   - Date: Compact 14% width positioned immediately beside Action
+   - Action: Compact 26% width for Edit, Revision, Approve buttons
+   - Headers: All column header names strictly centered
+   ========================================================================== */
+.section-head-pending-table,
+.section-head-theme .pending-approvals-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+/* All Column Header Names Strictly Centered */
+.section-head-pending-table thead th,
+.section-head-pending-table th,
+.section-head-theme .pending-approvals-table thead th,
+.section-head-theme .pending-approvals-table th {
+    text-align: center !important;
+    vertical-align: middle !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #475467 !important;
+    padding: 10px 12px !important;
+    box-sizing: border-box !important;
+}
+
+/* 1. Article Title Column: Takes generous 54% of table space */
+.section-head-pending-table th.col-title,
+.section-head-pending-table th:first-child,
+.section-head-theme .pending-approvals-table th:first-child {
+    width: 54% !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+}
+
+.section-head-pending-table td.col-title,
+.section-head-pending-table td:first-child,
+.section-head-theme .pending-approvals-table td:first-child {
+    width: 54% !important;
+    padding-left: 16px !important;
+    padding-right: 12px !important;
+    box-sizing: border-box !important;
     text-align: left !important;
 }
 
-.pending-approvals-table th:nth-child(2),
-.pending-approvals-table td:nth-child(2) {
+/* 2. Date Column: Compact 16% with generous breathing room before Action */
+.section-head-pending-table th.col-date,
+.section-head-pending-table td.col-date,
+.section-head-pending-table th:nth-child(2),
+.section-head-pending-table td:nth-child(2),
+.section-head-theme .pending-approvals-table th:nth-child(2),
+.section-head-theme .pending-approvals-table td:nth-child(2) {
     width: 16% !important;
-    text-align: left !important;
+    min-width: 100px !important;
+    text-align: center !important;
     white-space: nowrap !important;
     padding-left: 6px !important;
-    padding-right: 6px !important;
+    padding-right: 22px !important;
+    box-sizing: border-box !important;
 }
 
-.pending-approvals-table th:nth-child(3),
-.pending-approvals-table td:nth-child(3) {
-    width: 46% !important;
+.section-head-pending-table td.col-date .table-date,
+.section-head-pending-table td:nth-child(2) .table-date,
+.section-head-theme .pending-approvals-table td:nth-child(2) .table-date {
+    display: inline-block !important;
+    text-align: center !important;
+    font-size: 0.82rem !important;
+    color: #475467 !important;
+    white-space: nowrap !important;
+}
+
+/* 3. Action Column: 30% width, with 28px left padding for distinct separation from Date */
+.section-head-pending-table th.col-actions,
+.section-head-pending-table td.col-actions,
+.section-head-pending-table th:nth-child(3),
+.section-head-pending-table td:nth-child(3),
+.section-head-pending-table th:last-child,
+.section-head-pending-table td:last-child,
+.section-head-theme .pending-approvals-table th:nth-child(3),
+.section-head-theme .pending-approvals-table td:nth-child(3),
+.section-head-theme .pending-approvals-table th:last-child,
+.section-head-theme .pending-approvals-table td:last-child {
+    width: 30% !important;
+    min-width: 230px !important;
+    padding-left: 28px !important;
     padding-right: 14px !important;
-    padding-left: 6px !important;
-    text-align: right !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
 }
 
-/* Clear any inherited 4th/5th column width rules */
-.pending-approvals-table th:nth-child(4),
-.pending-approvals-table td:nth-child(4),
-.pending-approvals-table th:nth-child(5),
-.pending-approvals-table td:nth-child(5) {
-    width: auto !important;
+.section-head-pending-table td.col-actions .table-actions-group,
+.section-head-pending-table td:nth-child(3) .table-actions-group,
+.section-head-theme .pending-approvals-table td:nth-child(3) .table-actions-group {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+}
+
+.section-head-pending-table th:nth-child(4),
+.section-head-pending-table td:nth-child(4),
+.section-head-theme .pending-approvals-table th:nth-child(4),
+.section-head-theme .pending-approvals-table td:nth-child(4) {
+    display: none !important;
 }
 
 /* ==========================================================================
@@ -644,10 +725,13 @@
     padding: 0;
     cursor: pointer;
     transition: color 0.15s ease;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    display: block;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    -webkit-line-clamp: unset !important;
+    text-overflow: unset !important;
+    overflow: visible !important;
 }
 
 .table-article-stack .table-article-btn:hover,
@@ -744,6 +828,34 @@
     transform: translateY(-1px);
 }
 
+/* 4. Remarks Button (Light gray / neutral) */
+.btn-table-remarks {
+    background-color: #f2f4f7;
+    border-color: #eaecf0;
+    color: #344054;
+}
+
+.btn-table-remarks:hover {
+    background-color: #fdf2f2 !important;
+    color: var(--sidebar-maroon, #5c0a18) !important;
+    border-color: #fecdca !important;
+}
+
+/* 5. Submit Button (Signature Maroon) */
+.btn-table-submit {
+    background-color: var(--sidebar-maroon, #5c0a18) !important;
+    border-color: var(--sidebar-maroon, #5c0a18) !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(92, 10, 24, 0.15);
+}
+
+.btn-table-submit:hover {
+    background-color: #7a0d20 !important;
+    border-color: #7a0d20 !important;
+    box-shadow: 0 2px 6px rgba(92, 10, 24, 0.28);
+    transform: translateY(-1px);
+}
+
 /* ==========================================================================
    STANDARD ARTICLE TITLE FONT ENFORCEMENT ACROSS DASHBOARD
    ========================================================================== */
@@ -758,26 +870,45 @@
 
 /* Mobile Responsiveness for 3-Column Pending Approvals Table */
 @media (max-width: 768px) {
-    .pending-approvals-table th:first-child,
-    .pending-approvals-table td:first-child {
-        width: 52% !important;
-        padding-left: 8px !important;
-        padding-right: 6px !important;
+    .section-head-pending-table th.col-title,
+    .section-head-pending-table th:first-child,
+    .pending-approvals-table th:first-child {
+        width: 54% !important;
+        text-align: center !important;
     }
 
+    .section-head-pending-table td.col-title,
+    .section-head-pending-table td:first-child,
+    .pending-approvals-table td:first-child {
+        width: 54% !important;
+        padding-left: 8px !important;
+        padding-right: 6px !important;
+        text-align: left !important;
+    }
+
+    .section-head-pending-table th.col-date,
+    .section-head-pending-table td.col-date,
+    .section-head-pending-table th:nth-child(2),
+    .section-head-pending-table td:nth-child(2),
     .pending-approvals-table th:nth-child(2),
     .pending-approvals-table td:nth-child(2) {
         width: 18% !important;
         padding-left: 2px !important;
         padding-right: 2px !important;
-        font-size: 0.70rem !important;
+        font-size: 0.72rem !important;
+        text-align: center !important;
     }
 
+    .section-head-pending-table th.col-actions,
+    .section-head-pending-table td.col-actions,
+    .section-head-pending-table th:nth-child(3),
+    .section-head-pending-table td:nth-child(3),
     .pending-approvals-table th:nth-child(3),
     .pending-approvals-table td:nth-child(3) {
-        width: 30% !important;
+        width: 28% !important;
         padding-right: 8px !important;
         padding-left: 2px !important;
+        text-align: center !important;
     }
 
     .btn-table-action {
@@ -788,6 +919,148 @@
     .btn-table-action span {
         display: none !important; /* Icon-only in mobile for clean, un-squished buttons */
     }
+}
+
+/* ==========================================================================
+   TOP PERFORMING JOURNALISTS TABLE (Anti-Clipping & Wrap Formatting)
+   ========================================================================== */
+.journalists-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+.journalists-table th,
+.journalists-table td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.25 !important;
+}
+
+.journalists-table th {
+    text-align: center !important;
+}
+
+.journalists-table th.col-author {
+    width: 58% !important;
+    text-align: center !important;
+    padding-left: 14px !important;
+    padding-right: 6px !important;
+}
+
+.journalists-table td.col-author {
+    width: 58% !important;
+    text-align: left !important;
+    padding-left: 14px !important;
+    padding-right: 6px !important;
+}
+
+.journalists-table th.col-article-count {
+    width: 42% !important;
+    min-width: 90px !important;
+    text-align: center !important;
+    padding-right: 14px !important;
+    padding-left: 6px !important;
+}
+
+.journalists-table td.col-article-count {
+    width: 42% !important;
+    min-width: 90px !important;
+    text-align: right !important;
+    padding-right: 14px !important;
+    padding-left: 6px !important;
+}
+
+.journalists-table .author-name {
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    font-size: 0.88rem !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.35 !important;
+    display: inline-block !important;
+}
+
+/* ==========================================================================
+   EXISTING EDITORIAL FEEDBACK CALLOUT (Revision Tab / Manuscript Modal)
+   ========================================================================== */
+.remarks-alert-box {
+    margin: 18px 0 24px 0 !important;
+    padding: 16px 18px !important;
+    background-color: #fff1f2 !important;
+    border: 1px solid #fecdd3 !important;
+    border-left: 4px solid #700f2b !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(112, 15, 43, 0.06) !important;
+    box-sizing: border-box !important;
+}
+
+.remarks-alert-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    margin-bottom: 10px !important;
+    flex-wrap: wrap !important;
+}
+
+.remarks-alert-title {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+
+.remarks-alert-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 50% !important;
+    background-color: rgba(112, 15, 43, 0.12) !important;
+    color: #700f2b !important;
+    font-size: 0.78rem !important;
+    flex-shrink: 0 !important;
+}
+
+.remarks-alert-heading {
+    font-size: 0.84rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: #700f2b !important;
+    line-height: 1.2 !important;
+}
+
+.remarks-status-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 3px 10px !important;
+    background-color: #ffe4e6 !important;
+    border: 1px solid #fecdd3 !important;
+    border-radius: 9999px !important;
+    color: #9f1239 !important;
+    font-size: 0.70rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    line-height: 1.2 !important;
+}
+
+.remarks-alert-content {
+    background-color: #ffffff !important;
+    border: 1px solid #fecdd3 !important;
+    border-radius: 6px !important;
+    padding: 12px 16px !important;
+    color: #374151 !important;
+    font-size: 0.92rem !important;
+    line-height: 1.6 !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    box-shadow: inset 0 1px 2px rgba(112, 15, 43, 0.03) !important;
+    font-family: inherit !important;
 }
 
 

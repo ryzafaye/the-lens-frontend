@@ -2,15 +2,42 @@ import { reactive } from 'vue';
 import { defineStore } from 'pinia';
 import { getUser as fetchUserApi, logout as logoutApi } from '../services/api.js';
 
+function safeGetStorage(key, fallback = null) {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            return window.localStorage.getItem(key) || fallback;
+        }
+    } catch (e) {}
+    return fallback;
+}
+
+function safeSetStorage(key, value) {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem(key, String(value));
+        }
+    } catch (e) {}
+}
+
+function safeRemoveStorage(key) {
+    try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.removeItem(key);
+        }
+    } catch (e) {}
+}
+
 /**
  * Shared reactive user object for backwards compatibility with existing components.
  */
 export const currentUser = reactive({
-    id: localStorage.getItem('userId') || null,
-    full_name: localStorage.getItem('userName') || localStorage.getItem('writerName') || localStorage.getItem('sectionHeadName') || 'Writer',
-    role: localStorage.getItem('userRole') || localStorage.getItem('writerRole') || localStorage.getItem('sectionHeadRole') || 'Writer',
-    avatar_url: localStorage.getItem('userAvatar') || '/images/member-placeholder.svg',
-    student_number: localStorage.getItem('studentNumber') || '',
+    id: safeGetStorage('userId'),
+    full_name: safeGetStorage('userName') || safeGetStorage('writerName') || safeGetStorage('sectionHeadName') || 'Writer',
+    role: safeGetStorage('userRole') || safeGetStorage('writerRole') || safeGetStorage('sectionHeadRole') || 'Writer',
+    avatar_url: safeGetStorage('userAvatar') || '/images/member-placeholder.svg',
+    profile_picture_url: safeGetStorage('userAvatar') || '/images/member-placeholder.svg',
+    avatar: safeGetStorage('userAvatar') || '/images/member-placeholder.svg',
+    student_number: safeGetStorage('studentNumber') || '',
 });
 
 /**
@@ -23,11 +50,9 @@ export function setAuthUser(userData) {
     if (userData.full_name || userData.name) {
         const name = userData.full_name || userData.name;
         currentUser.full_name = name;
-        try {
-            localStorage.setItem('userName', name);
-            localStorage.setItem('writerName', name);
-            localStorage.setItem('sectionHeadName', name);
-        } catch (e) {}
+        safeSetStorage('userName', name);
+        safeSetStorage('writerName', name);
+        safeSetStorage('sectionHeadName', name);
     }
 
     if (userData.role) {
@@ -35,39 +60,33 @@ export function setAuthUser(userData) {
             ? userData.role
             : (userData.role?.role_name || currentUser.role);
         currentUser.role = role;
-        try {
-            localStorage.setItem('userRole', role);
-            localStorage.setItem('writerRole', role);
-            localStorage.setItem('sectionHeadRole', role);
-        } catch (e) {}
+        safeSetStorage('userRole', role);
+        safeSetStorage('writerRole', role);
+        safeSetStorage('sectionHeadRole', role);
     }
 
-    if (userData.avatar_url || userData.avatarUrl || userData.profile_picture_url) {
-        const avatar = userData.avatar_url || userData.avatarUrl || userData.profile_picture_url;
-        currentUser.avatar_url = avatar;
-        try {
-            localStorage.setItem('userAvatar', avatar);
-        } catch (e) {}
-    } else if (userData.avatar_url === null || userData.profile_picture_url === null) {
+    const rawAvatar = userData.avatar_url || userData.avatarUrl || userData.profile_picture_url || userData.avatar;
+    if (rawAvatar && rawAvatar !== 'null' && rawAvatar !== 'undefined') {
+        currentUser.avatar_url = rawAvatar;
+        currentUser.profile_picture_url = rawAvatar;
+        currentUser.avatar = rawAvatar;
+        safeSetStorage('userAvatar', rawAvatar);
+    } else if (userData.avatar_url === null || userData.profile_picture_url === null || userData.avatar === null) {
         currentUser.avatar_url = '/images/member-placeholder.svg';
-        try {
-            localStorage.setItem('userAvatar', '/images/member-placeholder.svg');
-        } catch (e) {}
+        currentUser.profile_picture_url = '/images/member-placeholder.svg';
+        currentUser.avatar = '/images/member-placeholder.svg';
+        safeSetStorage('userAvatar', '/images/member-placeholder.svg');
     }
 
     if (userData.student_number || userData.studentNumber) {
         const num = userData.student_number || userData.studentNumber;
         currentUser.student_number = num;
-        try {
-            localStorage.setItem('studentNumber', num);
-        } catch (e) {}
+        safeSetStorage('studentNumber', num);
     }
 
     if (userData.id) {
         currentUser.id = userData.id;
-        try {
-            localStorage.setItem('userId', String(userData.id));
-        } catch (e) {}
+        safeSetStorage('userId', String(userData.id));
     }
 
     // Dispatch global event for instant updates across any component or layout
@@ -77,6 +96,8 @@ export function setAuthUser(userData) {
                 id: currentUser.id,
                 full_name: currentUser.full_name,
                 avatar_url: currentUser.avatar_url,
+                profile_picture_url: currentUser.profile_picture_url,
+                avatar: currentUser.avatar,
                 student_number: currentUser.student_number,
                 role: currentUser.role,
             }
@@ -92,17 +113,17 @@ export function clearAuthUser() {
     currentUser.full_name = 'Writer';
     currentUser.role = 'Writer';
     currentUser.avatar_url = '/images/member-placeholder.svg';
+    currentUser.profile_picture_url = '/images/member-placeholder.svg';
+    currentUser.avatar = '/images/member-placeholder.svg';
     currentUser.student_number = '';
 
-    try {
-        localStorage.removeItem('userRole');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('writerName');
-        localStorage.removeItem('sectionHeadName');
-        localStorage.removeItem('studentNumber');
-        localStorage.removeItem('userAvatar');
-        localStorage.removeItem('userId');
-    } catch (e) {}
+    safeRemoveStorage('userRole');
+    safeRemoveStorage('userName');
+    safeRemoveStorage('writerName');
+    safeRemoveStorage('sectionHeadName');
+    safeRemoveStorage('studentNumber');
+    safeRemoveStorage('userAvatar');
+    safeRemoveStorage('userId');
 
     if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('profile-updated', {
@@ -129,8 +150,18 @@ export const useAuthStore = defineStore('auth', {
 
     getters: {
         isAuthenticated: (state) => !!state.user?.id || !!currentUser.id,
-        currentRole: (state) => state.user?.role || currentUser.role,
-        fullName: (state) => state.user?.full_name || currentUser.full_name,
+        currentRole: (state) => {
+            const r = state.user?.role || currentUser.role;
+            if (!r) return '';
+            if (typeof r === 'string') return r;
+            return r.role_name || r.name || '';
+        },
+        fullName: (state) => {
+            const u = state.user?.full_name || currentUser.full_name;
+            if (!u) return 'Writer';
+            if (typeof u === 'string') return u;
+            return u.name || 'Writer';
+        },
         avatarUrl: (state) => state.user?.avatar_url || currentUser.avatar_url,
     },
 
@@ -160,6 +191,8 @@ export const useAuthStore = defineStore('auth', {
                             full_name: currentUser.full_name,
                             role: currentUser.role,
                             avatar_url: currentUser.avatar_url,
+                            profile_picture_url: currentUser.profile_picture_url,
+                            avatar: currentUser.avatar,
                             student_number: currentUser.student_number,
                         };
                         this.initialized = true;
@@ -187,6 +220,8 @@ export const useAuthStore = defineStore('auth', {
                 full_name: currentUser.full_name,
                 role: currentUser.role,
                 avatar_url: currentUser.avatar_url,
+                profile_picture_url: currentUser.profile_picture_url,
+                avatar: currentUser.avatar,
                 student_number: currentUser.student_number,
             };
             this.initialized = true;

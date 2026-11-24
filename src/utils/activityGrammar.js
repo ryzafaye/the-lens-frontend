@@ -168,3 +168,142 @@ export function formatActivityStatement(item) {
         fullStatement
     };
 }
+
+/**
+ * Formats any date string or ISO timestamp strictly in Philippine Standard Time (PST / Asia/Manila, UTC+8).
+ * Example: "Nov 23, 2026 • 8:20 PM"
+ *
+ * @param {string|Date|number|null} dateInput
+ * @returns {string}
+ */
+export function formatPhilippineDateTime(dateInput) {
+    if (!dateInput) return '';
+
+    // If it's already in the exact format "Mmm DD, YYYY • H:MM AM/PM", return it directly
+    const preformattedRegex = /^[A-Z][a-z]{2}\s+\d{1,2},\s+\d{4}\s+•\s+\d{1,2}:\d{2}\s+(AM|PM)$/i;
+    if (typeof dateInput === 'string' && preformattedRegex.test(dateInput.trim())) {
+        return dateInput.trim();
+    }
+
+    try {
+        let str = String(dateInput).trim();
+        // If it's an ISO date or SQL datetime without timezone offset, ensure UTC parsing
+        if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/.test(str)) {
+            str = str.replace(' ', 'T') + 'Z';
+        }
+
+        const date = new Date(str);
+        if (isNaN(date.getTime())) {
+            return String(dateInput);
+        }
+
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Manila',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+
+        const parts = formatter.formatToParts(date);
+        const month = parts.find(p => p.type === 'month')?.value || '';
+        const day = parts.find(p => p.type === 'day')?.value || '';
+        const year = parts.find(p => p.type === 'year')?.value || '';
+        const hour = parts.find(p => p.type === 'hour')?.value || '';
+        const minute = parts.find(p => p.type === 'minute')?.value || '';
+        const dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value?.toUpperCase() || '';
+
+        return `${month} ${day}, ${year} • ${hour}:${minute} ${dayPeriod}`;
+    } catch {
+        return String(dateInput);
+    }
+}
+
+/**
+ * Returns human-readable relative time (e.g. "5 minutes ago", "Just now", "2 hours ago")
+ * calculated against Philippine Standard Time.
+ *
+ * @param {string|Date|number|null} dateInput
+ * @returns {string}
+ */
+export function formatPhilippineRelativeTime(dateInput) {
+    if (!dateInput) return 'Recently';
+
+    // If already pre-computed relative string like "5 minutes ago", "Just now", return it
+    if (typeof dateInput === 'string' && /ago|just now|yesterday|recently/i.test(dateInput)) {
+        return dateInput;
+    }
+
+    try {
+        let str = String(dateInput).trim();
+        if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/.test(str)) {
+            str = str.replace(' ', 'T') + 'Z';
+        }
+
+        const date = new Date(str);
+        if (isNaN(date.getTime())) {
+            return String(dateInput);
+        }
+
+        const now = Date.now();
+        const diffMs = now - date.getTime();
+        const diffSec = Math.floor(diffMs / 1000);
+
+        if (diffSec < 60) return 'Just now';
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return `${diffMin} ${diffMin === 1 ? 'minute' : 'minutes'} ago`;
+        const diffHours = Math.floor(diffMin / 60);
+        if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+        const diffDays = Math.floor(diffHours / 24);
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) {
+            const weeks = Math.floor(diffDays / 7);
+            return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
+        }
+        const months = Math.floor(diffDays / 30);
+        if (months < 12) return `${months} ${months === 1 ? 'month' : 'months'} ago`;
+        const years = Math.floor(diffDays / 365);
+        return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+    } catch {
+        return String(dateInput);
+    }
+}
+
+/**
+ * Resolves calendar day grouping in Philippine Standard Time.
+ *
+ * @param {string|Date|number|null} dateInput
+ * @returns {string} e.g. "Today", "Yesterday", or "Nov 23, 2026"
+ */
+export function getPhilippineDayGroup(dateInput) {
+    if (!dateInput) return 'Earlier';
+
+    try {
+        let str = String(dateInput).trim();
+        if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/.test(str)) {
+            str = str.replace(' ', 'T') + 'Z';
+        }
+        const date = new Date(str);
+        if (isNaN(date.getTime())) return 'Earlier';
+
+        const keyFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }); // YYYY-MM-DD
+        const dateKey = keyFormatter.format(date);
+        const todayKey = keyFormatter.format(new Date());
+        const yesterdayKey = keyFormatter.format(new Date(Date.now() - 86400000));
+
+        if (dateKey === todayKey) return 'Today';
+        if (dateKey === yesterdayKey) return 'Yesterday';
+
+        return new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Manila',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        }).format(date);
+    } catch {
+        return 'Earlier';
+    }
+}

@@ -7,7 +7,8 @@ import {
     storeEicArticle,
     deleteEicDraft,
 } from '../../services/api.js';
-import { cleanContentForEditing } from '../../utils/articleContent.js';
+import { cleanContentForEditing, formatCleanArticleContent, sanitizeRichArticleHtml, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-submit-article.css';
 
 const router = useRouter();
@@ -27,6 +28,8 @@ const title = ref('');
 const categoryId = ref('');
 const excerpt = ref('');
 const editorContent = ref('');
+const initialBodyContent = ref('');
+const loadedArticleStatus = ref('');
 const editorRef = ref(null);
 
 // Button loading states
@@ -34,18 +37,9 @@ const isSavingDraft = ref(false);
 const isSubmitting = ref(false);
 const isLoading = ref(true);
 
-// Toast notification
-const toastMessage = ref('');
-const toastType = ref('success');
-let toastTimer = null;
-
+// Centered Modal Toast/Feedback replacement
 function showToast(msg, type = 'success') {
-    toastMessage.value = msg;
-    toastType.value = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toastMessage.value = '';
-    }, 3400);
+    globalShowToast(msg, type);
 }
 
 // Live metrics
@@ -60,18 +54,137 @@ function switchTab(tab) {
     activeTab.value = tab;
 }
 
+// Toolbar active states
+const toolbarActive = ref({
+    undo: false,
+    redo: false,
+    bold: false,
+    italic: false,
+    underline: false,
+    strikeThrough: false,
+    subscript: false,
+    superscript: false,
+    h2: false,
+    h3: false,
+    blockquote: false,
+    insertUnorderedList: false,
+    insertOrderedList: false,
+    justifyLeft: false,
+    justifyCenter: false,
+    justifyRight: false,
+    justifyFull: false,
+});
+
+function updateToolbarStates() {
+    try {
+        toolbarActive.value.bold = document.queryCommandState('bold');
+        toolbarActive.value.italic = document.queryCommandState('italic');
+        toolbarActive.value.underline = document.queryCommandState('underline');
+        toolbarActive.value.strikeThrough = document.queryCommandState('strikeThrough');
+        toolbarActive.value.subscript = document.queryCommandState('subscript');
+        toolbarActive.value.superscript = document.queryCommandState('superscript');
+        toolbarActive.value.insertUnorderedList = document.queryCommandState('insertUnorderedList');
+        toolbarActive.value.insertOrderedList = document.queryCommandState('insertOrderedList');
+        toolbarActive.value.justifyLeft = document.queryCommandState('justifyLeft');
+        toolbarActive.value.justifyCenter = document.queryCommandState('justifyCenter');
+        toolbarActive.value.justifyRight = document.queryCommandState('justifyRight');
+        toolbarActive.value.justifyFull = document.queryCommandState('justifyFull');
+
+        const blockValue = (document.queryCommandValue('formatBlock') || '').toLowerCase().replace(/<|>/g, '');
+        toolbarActive.value.h2 = blockValue === 'h2';
+        toolbarActive.value.h3 = blockValue === 'h3';
+        toolbarActive.value.blockquote = blockValue === 'blockquote';
+    } catch (e) {
+        // queryCommand may throw if selection is outside
+    }
+}
+
 // Editor Formatting commands
 function execFormat(command, value = null) {
-    document.execCommand(command, false, value);
+    if (!editorRef.value) return;
+    editorRef.value.focus();
+
+    if (command === 'createLink') {
+        const url = prompt('Enter link URL (e.g., https://thelens.example.com):', 'https://');
+        if (url && url.trim().length > 0) {
+            const formattedUrl = url.trim().startsWith('http://') || url.trim().startsWith('https://')
+                ? url.trim()
+                : `https://${url.trim()}`;
+            document.execCommand('createLink', false, formattedUrl);
+        }
+    } else if (command === 'formatBlock') {
+        const currentTag = (document.queryCommandValue('formatBlock') || '').toLowerCase().replace(/<|>/g, '');
+        const targetTag = value.replace(/<|>/g, '').toLowerCase();
+
+        if (currentTag === targetTag) {
+            document.execCommand('formatBlock', false, '<div>');
+        } else {
+            document.execCommand('formatBlock', false, value);
+        }
+    } else {
+        document.execCommand(command, false, value);
+    }
+
     if (editorRef.value) {
         editorContent.value = editorRef.value.innerHTML;
-        editorRef.value.focus();
     }
+    updateToolbarStates();
 }
 
 function onEditorInput() {
     if (editorRef.value) {
         editorContent.value = editorRef.value.innerHTML;
+    }
+    updateToolbarStates();
+}
+
+function onEditorKeyup() {
+    if (editorRef.value) {
+        editorContent.value = editorRef.value.innerHTML;
+    }
+    updateToolbarStates();
+}
+
+function onEditorKeydown(e) {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        if (e.shiftKey) {
+            document.execCommand('outdent', false, null);
+        } else {
+            document.execCommand('indent', false, null);
+        }
+        if (editorRef.value) {
+            editorContent.value = editorRef.value.innerHTML;
+        }
+        updateToolbarStates();
+        return;
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'b' || e.key === 'B') {
+            e.preventDefault();
+            execFormat('bold');
+        } else if (e.key === 'i' || e.key === 'I') {
+            e.preventDefault();
+            execFormat('italic');
+        } else if (e.key === 'u' || e.key === 'U') {
+            e.preventDefault();
+            execFormat('underline');
+        } else if (e.key === 'z' || e.key === 'Z') {
+            if (e.shiftKey) {
+                e.preventDefault();
+                execFormat('redo');
+            } else {
+                e.preventDefault();
+                execFormat('undo');
+            }
+        } else if (e.key === 'y' || e.key === 'Y') {
+            e.preventDefault();
+            execFormat('redo');
+        } else if (e.key === 's' || e.key === 'S') {
+            e.preventDefault();
+            handleSaveDraft();
+        }
     }
 }
 
@@ -80,6 +193,8 @@ function clearForm() {
     title.value = '';
     excerpt.value = '';
     editorContent.value = '';
+    initialBodyContent.value = '';
+    loadedArticleStatus.value = '';
     if (editorRef.value) editorRef.value.innerHTML = '';
 }
 
@@ -89,8 +204,10 @@ function loadDraftIntoEditor(draft) {
     categoryId.value = draft.category_id || '';
     excerpt.value = draft.excerpt || '';
     editorContent.value = draft.content || '';
+    initialBodyContent.value = draft.content || '';
+    loadedArticleStatus.value = draft.status || '';
     if (editorRef.value) {
-        editorRef.value.innerHTML = draft.content || '';
+        editorRef.value.innerHTML = draft.content ? formatCleanArticleContent(draft.content) : '';
     }
     switchTab('write');
     showToast(`Loaded draft: "${draft.title}"`, 'success');
@@ -100,9 +217,20 @@ function loadDraftIntoEditor(draft) {
 const isDeleteModalOpen = ref(false);
 const draftToDelete = ref(null);
 
-function openDeleteModal(draft) {
+async function openDeleteModal(draft) {
+    if (!draft) return;
     draftToDelete.value = draft;
-    isDeleteModalOpen.value = true;
+
+    const confirmed = await confirmAction({
+        title: 'Delete Draft',
+        message: `Are you sure you want to delete "${draft.title}"?`,
+        confirmText: 'Delete Draft',
+        cancelText: 'Cancel',
+        type: 'danger',
+    });
+    if (!confirmed) return;
+
+    await confirmDeleteDraft();
 }
 
 function closeDeleteModal() {
@@ -135,6 +263,15 @@ async function handleSaveDraft() {
         return;
     }
 
+    const confirmed = await confirmAction({
+        title: 'Save Draft',
+        message: 'Are you sure you want to save this article as a draft?',
+        confirmText: 'Save Draft',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSavingDraft.value = true;
     try {
         const payload = {
@@ -142,7 +279,7 @@ async function handleSaveDraft() {
             title: title.value.trim(),
             category_id: categoryId.value || null,
             excerpt: excerpt.value.trim(),
-            content: cleanContentForEditing(editorRef.value?.innerHTML || editorContent.value),
+            content: sanitizeRichArticleHtml(editorRef.value?.innerHTML || editorContent.value),
             action: 'draft',
             status: 'draft',
         };
@@ -189,6 +326,22 @@ async function handleSubmitArticle() {
         return;
     }
 
+    if (isRevisionStatus(loadedArticleStatus.value)) {
+        if (!isArticleBodyModified(initialBodyContent.value, contentHtml)) {
+            showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
+            return;
+        }
+    }
+
+    const confirmed = await confirmAction({
+        title: 'Submit Article',
+        message: 'Are you sure you want to submit this article and forward it to the President for approval?',
+        confirmText: 'Submit Article',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     try {
         const payload = {
@@ -196,14 +349,14 @@ async function handleSubmitArticle() {
             title: title.value.trim(),
             category_id: categoryId.value,
             excerpt: excerpt.value.trim(),
-            content: cleanContentForEditing(contentHtml),
+            content: sanitizeRichArticleHtml(contentHtml),
             action: 'submit',
             status: 'Pending Review',
         };
 
-        await storeEicArticle(payload);
+        const res = await storeEicArticle(payload);
 
-        showToast('Article submitted successfully!', 'success');
+        showToast(res?.message || 'Article submitted and forwarded to President for approval.', 'success');
         clearForm();
 
         // Redirect to Manage My Articles after submission
@@ -354,32 +507,235 @@ onMounted(() => {
                         </div>
 
                         <!-- Formatting Toolbar -->
-                        <div class="editor-toolbar" role="toolbar">
-                            <button type="button" class="tool-btn" @click="execFormat('bold')" title="Bold (Ctrl+B)">
+                        <div class="editor-toolbar" id="editor-toolbar" role="toolbar" aria-label="Editor controls">
+                            <!-- History -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                @mousedown.prevent
+                                @click="execFormat('undo')"
+                                title="Undo (Ctrl+Z)"
+                            >
+                                <i class="fa-solid fa-rotate-left"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                @mousedown.prevent
+                                @click="execFormat('redo')"
+                                title="Redo (Ctrl+Y)"
+                            >
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+
+                            <div class="toolbar-divider"></div>
+
+                            <!-- Typography & Styling -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.bold }"
+                                @mousedown.prevent
+                                @click="execFormat('bold')"
+                                title="Bold (Ctrl+B)"
+                            >
                                 <i class="fa-solid fa-bold"></i>
                             </button>
-                            <button type="button" class="tool-btn" @click="execFormat('italic')" title="Italic (Ctrl+I)">
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.italic }"
+                                @mousedown.prevent
+                                @click="execFormat('italic')"
+                                title="Italic (Ctrl+I)"
+                            >
                                 <i class="fa-solid fa-italic"></i>
                             </button>
-                            <button type="button" class="tool-btn" @click="execFormat('underline')" title="Underline (Ctrl+U)">
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.underline }"
+                                @mousedown.prevent
+                                @click="execFormat('underline')"
+                                title="Underline (Ctrl+U)"
+                            >
                                 <i class="fa-solid fa-underline"></i>
                             </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.strikeThrough }"
+                                @mousedown.prevent
+                                @click="execFormat('strikeThrough')"
+                                title="Strikethrough"
+                            >
+                                <i class="fa-solid fa-strikethrough"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.subscript }"
+                                @mousedown.prevent
+                                @click="execFormat('subscript')"
+                                title="Subscript"
+                            >
+                                <i class="fa-solid fa-subscript"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.superscript }"
+                                @mousedown.prevent
+                                @click="execFormat('superscript')"
+                                title="Superscript"
+                            >
+                                <i class="fa-solid fa-superscript"></i>
+                            </button>
+
                             <div class="toolbar-divider"></div>
-                            <button type="button" class="tool-btn" @click="execFormat('formatBlock', '<h2>')">
+
+                            <!-- Structural Blocks -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.h2 }"
+                                @mousedown.prevent
+                                @click="execFormat('formatBlock', '<h2>')"
+                                title="Heading 2"
+                            >
                                 <span>H2</span>
                             </button>
-                            <button type="button" class="tool-btn" @click="execFormat('formatBlock', '<h3>')">
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.h3 }"
+                                @mousedown.prevent
+                                @click="execFormat('formatBlock', '<h3>')"
+                                title="Heading 3"
+                            >
                                 <span>H3</span>
                             </button>
-                            <button type="button" class="tool-btn" @click="execFormat('formatBlock', '<blockquote>')">
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.blockquote }"
+                                @mousedown.prevent
+                                @click="execFormat('formatBlock', '<blockquote>')"
+                                title="Blockquote / Pull Quote"
+                            >
                                 <i class="fa-solid fa-quote-left"></i>
                             </button>
+
                             <div class="toolbar-divider"></div>
-                            <button type="button" class="tool-btn" @click="execFormat('insertUnorderedList')" title="Bullet List">
+
+                            <!-- Lists -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.insertUnorderedList }"
+                                @mousedown.prevent
+                                @click="execFormat('insertUnorderedList')"
+                                title="Bullet List"
+                            >
                                 <i class="fa-solid fa-list-ul"></i>
                             </button>
-                            <button type="button" class="tool-btn" @click="execFormat('insertOrderedList')" title="Numbered List">
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.insertOrderedList }"
+                                @mousedown.prevent
+                                @click="execFormat('insertOrderedList')"
+                                title="Numbered List"
+                            >
                                 <i class="fa-solid fa-list-ol"></i>
+                            </button>
+
+                            <div class="toolbar-divider"></div>
+
+                            <!-- Alignment -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.justifyLeft }"
+                                @mousedown.prevent
+                                @click="execFormat('justifyLeft')"
+                                title="Align Left"
+                            >
+                                <i class="fa-solid fa-align-left"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.justifyCenter }"
+                                @mousedown.prevent
+                                @click="execFormat('justifyCenter')"
+                                title="Align Center"
+                            >
+                                <i class="fa-solid fa-align-center"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.justifyRight }"
+                                @mousedown.prevent
+                                @click="execFormat('justifyRight')"
+                                title="Align Right"
+                            >
+                                <i class="fa-solid fa-align-right"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                :class="{ active: toolbarActive.justifyFull }"
+                                @mousedown.prevent
+                                @click="execFormat('justifyFull')"
+                                title="Justify"
+                            >
+                                <i class="fa-solid fa-align-justify"></i>
+                            </button>
+
+                            <div class="toolbar-divider"></div>
+
+                            <!-- Links & Elements -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                @mousedown.prevent
+                                @click="execFormat('createLink')"
+                                title="Insert Link"
+                            >
+                                <i class="fa-solid fa-link"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                @mousedown.prevent
+                                @click="execFormat('unlink')"
+                                title="Remove Link"
+                            >
+                                <i class="fa-solid fa-link-slash"></i>
+                            </button>
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                @mousedown.prevent
+                                @click="execFormat('insertHorizontalRule')"
+                                title="Horizontal Divider Line"
+                            >
+                                <i class="fa-solid fa-minus"></i>
+                            </button>
+
+                            <div class="toolbar-divider"></div>
+
+                            <!-- Clear Formatting -->
+                            <button
+                                type="button"
+                                class="tool-btn"
+                                @mousedown.prevent
+                                @click="execFormat('removeFormat')"
+                                title="Clear Formatting"
+                            >
+                                <i class="fa-solid fa-eraser"></i>
                             </button>
                         </div>
 
@@ -392,6 +748,9 @@ onMounted(() => {
                                 spellcheck="true"
                                 data-placeholder="Write your article here..."
                                 @input="onEditorInput"
+                                @keyup="onEditorKeyup"
+                                @mouseup="updateToolbarStates"
+                                @keydown="onEditorKeydown"
                             ></div>
                         </div>
 
@@ -452,6 +811,7 @@ onMounted(() => {
                                     <button
                                         type="button"
                                         class="draft-box-title"
+                                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                                         @click="loadDraftIntoEditor(draft)"
                                         :title="draft.title"
                                     >
@@ -485,57 +845,5 @@ onMounted(() => {
                 </div>
             </div>
         </main>
-
-        <!-- Delete Draft Confirmation Modal -->
-        <div
-            v-if="isDeleteModalOpen"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            @click.self="closeDeleteModal"
-        >
-            <div class="modal-card" style="max-width: 440px; padding: 24px;">
-                <div class="modal-header-simple" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h3 class="modal-title font-semibold text-base text-rose-700" style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Delete Draft</span>
-                    </h3>
-                    <button type="button" class="viewer-close-btn" @click="closeDeleteModal">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-                <div style="font-size: 0.9rem; color: #4b5563; line-height: 1.5; margin-bottom: 20px;">
-                    Are you sure you want to permanently delete draft <strong>"{{ draftToDelete?.title }}"</strong>? This action cannot be undone.
-                </div>
-                <div style="display: flex; justify-content: flex-end; gap: 8px;">
-                    <button
-                        type="button"
-                        class="btn-box-save"
-                        style="background: #e5e7eb; color: #374151;"
-                        @click="closeDeleteModal"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        class="btn-modal-submit-deactivate"
-                        @click="confirmDeleteDraft"
-                    >
-                        <i class="fa-regular fa-trash-can"></i>
-                        <span>Delete Draft</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Global Toast Notification -->
-        <div v-if="toastMessage" class="toast-container">
-            <div class="custom-toast" :class="toastType">
-                <i v-if="toastType === 'success'" class="fa-solid fa-circle-check"></i>
-                <i v-else-if="toastType === 'warning'" class="fa-solid fa-triangle-exclamation"></i>
-                <i v-else class="fa-solid fa-circle-exclamation"></i>
-                <span>{{ toastMessage }}</span>
-            </div>
-        </div>
     </EicLayout>
 </template>

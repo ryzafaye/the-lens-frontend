@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import EicLayout from '../../layouts/EicLayout.vue';
 import { getUser, updateProfileInfo, updatePassword } from '../../services/api.js';
 import { setAuthUser } from '../../stores/auth.js';
-import { optimizeCloudinaryUrl } from '../../utils/image.js';
+import { optimizeCloudinaryUrl, resolveUserAvatar } from '../../utils/image.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-profile-settings.css';
 
 // State
@@ -28,18 +29,9 @@ const showNewPassword = ref(false);
 const showConfirmPassword = ref(false);
 const isSavingPassword = ref(false);
 
-// Toast notification
-const toastMessage = ref('');
-const toastType = ref('success');
-let toastTimer = null;
-
+// Toast replacement
 function showToast(msg, type = 'success') {
-    toastMessage.value = msg;
-    toastType.value = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toastMessage.value = '';
-    }, 3400);
+    globalShowToast(msg, type);
 }
 
 // Password criteria checks
@@ -61,18 +53,7 @@ const canSubmitPassword = computed(() => {
 
 // Avatar URL resolver: ensures Cloudinary and relative URLs render cleanly
 function resolveAvatarUrl(url) {
-    if (!url) return '/images/member-placeholder.svg';
-    const trimmed = String(url).trim();
-    if (trimmed.startsWith('data:')) {
-        return trimmed;
-    }
-    if (trimmed.startsWith('https://') || trimmed.startsWith('http://')) {
-        return optimizeCloudinaryUrl(trimmed, { width: 300, crop: 'limit' });
-    }
-    if (trimmed.startsWith('/')) {
-        return trimmed;
-    }
-    return `/${trimmed}`;
+    return resolveUserAvatar(url);
 }
 
 const computedAvatarSrc = computed(() => {
@@ -127,6 +108,15 @@ async function handleSaveProfile() {
         showToast('Full name cannot be empty.', 'error');
         return;
     }
+
+    const confirmed = await confirmAction({
+        title: 'Save Profile Changes',
+        message: 'Are you sure you want to update your profile information?',
+        confirmText: 'Save Profile',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSavingProfile.value = true;
     try {
@@ -196,6 +186,15 @@ async function handleUpdatePassword() {
         showToast('New and confirm passwords must match.', 'error');
         return;
     }
+
+    const confirmed = await confirmAction({
+        title: 'Update Password',
+        message: 'Are you sure you want to change your account password?',
+        confirmText: 'Change Password',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSavingPassword.value = true;
     try {
@@ -519,13 +518,5 @@ onMounted(() => {
                 </div>
             </div>
         </main>
-
-        <!-- Toast Notification Container -->
-        <div v-if="toastMessage" id="toast-container" class="toast-container" aria-live="polite">
-            <div class="toast-message" :class="toastType">
-                <span class="toast-bullet-dot"></span>
-                <span>{{ toastMessage }}</span>
-            </div>
-        </div>
     </EicLayout>
 </template>

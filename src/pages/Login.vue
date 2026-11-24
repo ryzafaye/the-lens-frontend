@@ -2,8 +2,8 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { login } from '../services/api.js';
-import { setAuthUser } from '../stores/auth.js';
-import logoImg from '../assets/images/logo.jpg';
+import { setAuthUser, useAuthStore } from '../stores/auth.js';
+const logoImg = '/images/logo.jpg';
 import '../assets/css/login.css';
 
 const router = useRouter();
@@ -56,12 +56,22 @@ async function handleLogin() {
     errorMessage.value = '';
     isLoading.value = true;
 
+    // Safety timeout: ensure loading state never hangs indefinitely if network stalls
+    const loginTimeout = setTimeout(() => {
+        if (isLoading.value) {
+            isLoading.value = false;
+            errorMessage.value = 'Sign-in is taking longer than expected. Please check your connection and try again.';
+        }
+    }, 12000);
+
     try {
         const data = await login(studentNumber.value, password.value);
+        clearTimeout(loginTimeout);
 
-        // Store role & user information for instantaneous hydration
+        // Store role & user information for instantaneous hydration in Pinia and localStorage
+        const authStore = useAuthStore();
         if (data.user) {
-            setAuthUser(data.user);
+            authStore.setUser(data.user);
         }
 
         // Direct to portal based on user role/portal from API
@@ -71,6 +81,9 @@ async function handleLogin() {
             if (portal === 'eic') targetRoute = '/eic/dashboard';
             else if (portal === 'executive') targetRoute = '/executive/dashboard';
             else if (portal === 'section-head') targetRoute = '/section-head/dashboard';
+            else if (portal === 'cartoonist') targetRoute = '/cartoonist/dashboard';
+            else if (portal === 'media') targetRoute = '/media/dashboard';
+            else if (portal === 'mpc') targetRoute = '/mpc/dashboard';
             else targetRoute = '/writer/dashboard';
         }
 
@@ -80,7 +93,10 @@ async function handleLogin() {
             window.location.href = targetRoute;
         }
     } catch (error) {
-        if (error.response?.data?.errors?.student_number) {
+        clearTimeout(loginTimeout);
+        if (error.code === 'ECONNABORTED' || (error.message && error.message.includes('timeout'))) {
+            errorMessage.value = 'Server connection timed out. Please verify the backend is running and try again.';
+        } else if (error.response?.data?.errors?.student_number) {
             const err = error.response.data.errors.student_number;
             errorMessage.value = Array.isArray(err) ? err[0] : err;
         } else if (error.response?.data?.message) {
@@ -89,6 +105,7 @@ async function handleLogin() {
             errorMessage.value = 'Invalid student number or password. Please try again.';
         }
     } finally {
+        clearTimeout(loginTimeout);
         isLoading.value = false;
     }
 }

@@ -1,12 +1,57 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '../stores/auth.js';
+import { useAuthStore, currentUser } from '../stores/auth.js';
 
 const routes = [
+    // Public Reader Website Routes
     {
         path: '/',
-        name: 'home',
-        redirect: '/login',
+        name: 'public-home',
+        component: () => import('../pages/public/Home.vue'),
+        alias: ['/home'],
     },
+    {
+        path: '/article/:slug',
+        name: 'public-article',
+        component: () => import('../pages/public/Article.vue'),
+    },
+    {
+        path: '/category/:slug',
+        name: 'public-category',
+        component: () => import('../pages/public/Category.vue'),
+    },
+    {
+        path: '/archives',
+        name: 'public-archives',
+        component: () => import('../pages/public/Archives.vue'),
+    },
+    {
+        path: '/author/:id',
+        name: 'public-author',
+        component: () => import('../pages/public/Author.vue'),
+    },
+    {
+        path: '/about',
+        name: 'public-about',
+        component: () => import('../pages/public/About.vue'),
+    },
+    {
+        path: '/members',
+        name: 'public-members',
+        component: () => import('../pages/public/Members.vue'),
+    },
+    {
+        path: '/feedback',
+        name: 'public-feedback',
+        component: () => import('../pages/public/Feedback.vue'),
+    },
+    // Convenience category redirects
+    { path: '/latest', redirect: '/category/latest' },
+    { path: '/news', redirect: '/category/news' },
+    { path: '/features', redirect: '/category/feature' },
+    { path: '/opinion', redirect: '/category/opinion' },
+    { path: '/science', redirect: '/category/science-technology' },
+    { path: '/literature', redirect: '/category/literature' },
+
     {
         path: '/login',
         name: 'login',
@@ -278,12 +323,202 @@ const routes = [
         redirect: '/executive/profile-settings',
     },
 
+    // Media & Public Communications (M&PC) Portal Routes
+    {
+        path: '/mpc',
+        redirect: '/mpc/dashboard',
+    },
+    {
+        path: '/mpc/dashboard',
+        name: 'mpc-dashboard',
+        component: () => import('../pages/mpc/Dashboard.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/publish-article',
+        name: 'mpc-publish-article',
+        component: () => import('../pages/mpc/PublishArticle.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/media-desk',
+        name: 'mpc-media-desk',
+        component: () => import('../pages/mpc/MediaDesk.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/submit-media',
+        name: 'mpc-submit-media',
+        component: () => import('../pages/mpc/SubmitMedia.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/manage-media',
+        name: 'mpc-manage-media',
+        component: () => import('../pages/mpc/ManageMedia.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/manage-my-articles',
+        name: 'mpc-manage-my-articles',
+        component: () => import('../pages/mpc/ManageMyArticles.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/my-articles',
+        redirect: '/mpc/manage-my-articles',
+    },
+    {
+        path: '/mpc/manage-articles',
+        redirect: '/mpc/manage-my-articles',
+    },
+    {
+        path: '/mpc/submit-article',
+        name: 'mpc-submit-article',
+        component: () => import('../pages/mpc/SubmitArticle.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/activity-logs',
+        name: 'mpc-activity-logs',
+        component: () => import('../pages/mpc/ActivityLogs.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/profile-settings',
+        name: 'mpc-profile-settings',
+        component: () => import('../pages/mpc/ProfileSettings.vue'),
+        meta: { requiresAuth: true, role: 'MPC' },
+    },
+    {
+        path: '/mpc/settings',
+        redirect: '/mpc/profile-settings',
+    },
+
+    // Media & Communication Portal Routes
+    {
+        path: '/media',
+        redirect: '/media/dashboard',
+    },
+    {
+        path: '/media/dashboard',
+        name: 'media-dashboard',
+        component: () => import('../pages/media/Dashboard.vue'),
+        meta: { requiresAuth: true, role: 'Media' },
+    },
+    {
+        path: '/media/submit-article',
+        name: 'media-submit-article',
+        component: () => import('../pages/media/SubmitArticle.vue'),
+        meta: { requiresAuth: true, role: 'Media' },
+    },
+    {
+        path: '/media/manage-articles',
+        name: 'media-manage-articles',
+        component: () => import('../pages/media/ManageArticles.vue'),
+        meta: { requiresAuth: true, role: 'Media' },
+    },
+    {
+        path: '/media/manage-my-articles',
+        redirect: '/media/manage-articles',
+    },
+    {
+        path: '/media/my-articles',
+        redirect: '/media/manage-articles',
+    },
+    {
+        path: '/media/submit-media',
+        name: 'media-submit-media',
+        component: () => import('../pages/media/SubmitMedia.vue'),
+        meta: { requiresAuth: true, role: 'Media' },
+    },
+    {
+        path: '/media/manage-media',
+        name: 'media-manage-media',
+        component: () => import('../pages/media/ManageMedia.vue'),
+        meta: { requiresAuth: true, role: 'Media' },
+    },
+    {
+        path: '/media/profile-settings',
+        name: 'media-profile-settings',
+        component: () => import('../pages/media/ProfileSettings.vue'),
+        meta: { requiresAuth: true, role: 'Media' },
+    },
+    {
+        path: '/media/settings',
+        redirect: '/media/profile-settings',
+    },
+
+    // Cartoonist Portal Routes
+    {
+        path: '/cartoonist',
+        redirect: '/cartoonist/dashboard',
+    },
+    {
+        path: '/cartoonist/dashboard',
+        name: 'cartoonist-dashboard',
+        component: () => import('../pages/cartoonist/Dashboard.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/submit-article',
+        name: 'cartoonist-submit-article',
+        component: () => import('../pages/cartoonist/SubmitArticle.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/manage-articles',
+        name: 'cartoonist-manage-articles',
+        component: () => import('../pages/cartoonist/ManageArticles.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/manage-my-articles',
+        redirect: '/cartoonist/manage-articles',
+    },
+    {
+        path: '/cartoonist/my-articles',
+        redirect: '/cartoonist/manage-articles',
+    },
+    {
+        path: '/cartoonist/submit-cartoon',
+        name: 'cartoonist-submit-cartoon',
+        component: () => import('../pages/cartoonist/SubmitCartoon.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/manage-cartoons',
+        name: 'cartoonist-manage-cartoons',
+        component: () => import('../pages/cartoonist/ManageCartoons.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/cartoon-desk',
+        name: 'cartoonist-cartoon-desk',
+        component: () => import('../pages/cartoonist/CartoonDesk.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/profile-settings',
+        name: 'cartoonist-profile-settings',
+        component: () => import('../pages/cartoonist/ProfileSettings.vue'),
+        meta: { requiresAuth: true, role: 'Cartoonist' },
+    },
+    {
+        path: '/cartoonist/settings',
+        redirect: '/cartoonist/profile-settings',
+    },
+
     // Wildcard / 404 Fallback
     {
         path: '/:pathMatch(.*)*',
         redirect: () => {
             const authStore = useAuthStore();
-            const role = (authStore.currentRole || '').toLowerCase();
+            if (!authStore.isAuthenticated) {
+                return '/';
+            }
+            const rawRole = authStore.currentRole || currentUser.role || '';
+            const role = (typeof rawRole === 'string' ? rawRole : (rawRole?.role_name || rawRole?.name || '')).toLowerCase();
             if (role.includes('chief') || role.includes('eic')) {
                 return '/eic/dashboard';
             }
@@ -297,6 +532,15 @@ const routes = [
                 role.includes('executive')
             ) {
                 return '/executive/dashboard';
+            }
+            if (role.includes('cartoonist')) {
+                return '/cartoonist/dashboard';
+            }
+            if (role.includes('m&pc') || role.includes('media and public') || role.includes('mpc')) {
+                return '/mpc/dashboard';
+            }
+            if (role.includes('photojournalist') || role.includes('media team') || (role.includes('media') && !role.includes('public'))) {
+                return '/media/dashboard';
             }
             if (role.includes('head')) {
                 return '/section-head/dashboard';
@@ -328,7 +572,8 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (to.meta.guestOnly && authStore.isAuthenticated) {
-        const role = (authStore.currentRole || '').toLowerCase();
+        const rawRole = authStore.currentRole || currentUser.role || '';
+        const role = (typeof rawRole === 'string' ? rawRole : (rawRole?.role_name || rawRole?.name || '')).toLowerCase();
         if (role.includes('chief') || role.includes('eic')) {
             return next('/eic/dashboard');
         }
@@ -343,6 +588,15 @@ router.beforeEach(async (to, from, next) => {
         ) {
             return next('/executive/dashboard');
         }
+        if (role.includes('cartoonist')) {
+            return next('/cartoonist/dashboard');
+        }
+        if (role.includes('m&pc') || role.includes('media and public') || role.includes('mpc')) {
+            return next('/mpc/dashboard');
+        }
+        if (role.includes('photojournalist') || role.includes('media team') || (role.includes('media') && !role.includes('public'))) {
+            return next('/media/dashboard');
+        }
         if (role.includes('head')) {
             return next('/section-head/dashboard');
         }
@@ -351,13 +605,18 @@ router.beforeEach(async (to, from, next) => {
 
     // RBAC Guard: Only Auditor and Treasurer can access the Executive Transparency page
     if (to.path === '/executive/transparency' || to.name === 'executive-transparency') {
-        const role = (authStore.currentRole || authStore.user?.role?.role_name || currentUser.role || '').toLowerCase();
+        const rawRole = authStore.currentRole || authStore.user?.role?.role_name || currentUser.role || '';
+        const role = (typeof rawRole === 'string' ? rawRole : (rawRole?.role_name || rawRole?.name || '')).toLowerCase();
         if (!role.includes('auditor') && !role.includes('treasurer')) {
             return next('/executive/dashboard');
         }
     }
 
     next();
+});
+
+router.onError((error) => {
+    console.error('Router navigation error:', error);
 });
 
 export default router;

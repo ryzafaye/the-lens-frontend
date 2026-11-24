@@ -14,6 +14,10 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    modelValue: {
+        type: Boolean,
+        default: false,
+    },
     loading: {
         type: Boolean,
         default: false,
@@ -26,21 +30,63 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    isSubmitting: {
+        type: Boolean,
+        default: false,
+    },
+    'is-submitting': {
+        type: Boolean,
+        default: false,
+    },
+    isLoggingOut: {
+        type: Boolean,
+        default: false,
+    },
+    'is-logging-out': {
+        type: Boolean,
+        default: false,
+    },
 });
 
 const isModalVisible = computed(() => {
-    return Boolean(props.show || props.isOpen || props['is-open']);
+    return Boolean(props.show || props.isOpen || props['is-open'] || props.modelValue);
 });
 
 const isActionLoading = computed(() => {
-    return Boolean(props.loading || props.isLoading || props['is-loading']);
+    return Boolean(
+        props.loading ||
+        props.isLoading ||
+        props['is-loading'] ||
+        props.isSubmitting ||
+        props['is-submitting'] ||
+        props.isLoggingOut ||
+        props['is-logging-out']
+    );
 });
 
-const emit = defineEmits(['confirm', 'cancel']);
+const emit = defineEmits([
+    'confirm',
+    'cancel',
+    'close',
+    'update:show',
+    'update:isOpen',
+    'update:is-open',
+    'update:modelValue',
+]);
+
+function handleClose() {
+    if (isActionLoading.value) return;
+    emit('cancel');
+    emit('close');
+    emit('update:show', false);
+    emit('update:isOpen', false);
+    emit('update:is-open', false);
+    emit('update:modelValue', false);
+}
 
 function handleKeydown(e) {
     if (e.key === 'Escape' && isModalVisible.value && !isActionLoading.value) {
-        emit('cancel');
+        handleClose();
     }
 }
 
@@ -60,7 +106,7 @@ onUnmounted(() => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="logout-modal-title"
-        @click.self="!isActionLoading && $emit('cancel')"
+        @click.self="handleClose"
     >
         <div class="modal-card logout-confirmation-card">
             <button
@@ -68,7 +114,7 @@ onUnmounted(() => {
                 class="logout-close-icon-btn"
                 aria-label="Close"
                 :disabled="isActionLoading"
-                @click="!isActionLoading && $emit('cancel')"
+                @click="handleClose"
             >
                 <i class="fa-solid fa-xmark"></i>
             </button>
@@ -88,7 +134,7 @@ onUnmounted(() => {
                     type="button"
                     class="logout-btn-cancel"
                     :disabled="isActionLoading"
-                    @click="$emit('cancel')"
+                    @click="handleClose"
                 >
                     Cancel
                 </button>

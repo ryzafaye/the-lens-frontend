@@ -500,16 +500,20 @@
 .tool-btn {
     background: transparent;
     border: none;
-    padding: 6px 9px;
-    border-radius: 5px;
+    padding: 6px 8px;
+    border-radius: 6px;
     color: #475467;
-    font-size: 0.84rem;
+    font-size: 0.85rem;
     font-family: var(--font-sans);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
+    min-width: 32px;
+    height: 32px;
     transition: all 0.12s ease;
+    user-select: none;
 }
 
 .tool-btn:hover {
@@ -518,16 +522,23 @@
 }
 
 .tool-btn.active {
-    background-color: #f2f4f7;
-    color: var(--sidebar-maroon, #5c0a18);
+    background-color: #fbf2f4;
+    color: var(--sidebar-maroon, #700f2b);
     font-weight: 700;
+    box-shadow: inset 0 0 0 1px rgba(112, 15, 43, 0.25);
+}
+
+.tool-btn:focus-visible {
+    outline: 2px solid var(--sidebar-maroon, #700f2b);
+    outline-offset: 1px;
 }
 
 .toolbar-divider {
     width: 1px;
-    height: 18px;
+    height: 20px;
     background-color: #e4e7ec;
     margin: 0 4px;
+    flex-shrink: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -647,14 +658,151 @@
     border-radius: 0 6px 6px 0;
 }
 
+/* Unordered and Ordered Lists: strictly enforced display and bullet/number styling */
 .rich-editor-content ul,
-.rich-editor-content ol {
-    padding-left: 24px;
-    margin: 0 0 16px 0;
+.rich-editor-content ul[type="disc"] {
+    list-style-type: disc !important;
+    list-style-position: outside !important;
+    padding-left: 32px !important;
+    margin: 12px 0 16px 0 !important;
+}
+
+.rich-editor-content ol,
+.rich-editor-content ol[type="1"] {
+    list-style-type: decimal !important;
+    list-style-position: outside !important;
+    padding-left: 32px !important;
+    margin: 12px 0 16px 0 !important;
 }
 
 .rich-editor-content li {
-    margin-bottom: 6px;
+    display: list-item !important;
+    list-style: inherit !important;
+    margin-bottom: 6px !important;
+    line-height: inherit !important;
+    text-align: left !important;
+}
+
+.rich-editor-content ul ul,
+.rich-editor-content ol ul {
+    list-style-type: circle !important;
+    margin: 4px 0 6px 0 !important;
+    padding-left: 24px !important;
+}
+
+.rich-editor-content ul ol,
+.rich-editor-content ol ol {
+    list-style-type: lower-latin !important;
+    margin: 4px 0 6px 0 !important;
+    padding-left: 24px !important;
+}
+
+/* Strikethrough, Subscript, Superscript */
+.rich-editor-content s,
+.rich-editor-content strike,
+.rich-editor-content del {
+    text-decoration: line-through !important;
+}
+
+.rich-editor-content sub {
+    vertical-align: sub !important;
+    font-size: 0.75em !important;
+    line-height: 0 !important;
+}
+
+.rich-editor-content sup {
+    vertical-align: super !important;
+    font-size: 0.75em !important;
+    line-height: 0 !important;
+}
+
+/* Alignments inside editor */
+.rich-editor-content [align="left"],
+.rich-editor-content [style*="text-align: left"],
+.rich-editor-content [style*="text-align:left"],
+.rich-editor-content .text-left {
+    text-align: left !important;
+}
+
+.rich-editor-content [align="center"],
+.rich-editor-content [style*="text-align: center"],
+.rich-editor-content [style*="text-align:center"],
+.rich-editor-content .text-center {
+    text-align: center !important;
+}
+
+.rich-editor-content [align="right"],
+.rich-editor-content [style*="text-align: right"],
+.rich-editor-content [style*="text-align:right"],
+.rich-editor-content .text-right {
+    text-align: right !important;
+}
+
+.rich-editor-content [align="justify"],
+.rich-editor-content [style*="text-align: justify"],
+.rich-editor-content [style*="text-align:justify"],
+.rich-editor-content .text-justify {
+    text-align: justify !important;
+}
+
+/* Parity for Reader & Manuscript Viewer Modals */
+.article-body-streamlined ul,
+.viewer-content-text ul,
+.manuscript-body-text ul,
+.modal-body ul {
+    list-style-type: disc !important;
+    list-style-position: outside !important;
+    padding-left: 32px !important;
+    margin: 12px 0 16px 0 !important;
+}
+
+.article-body-streamlined ol,
+.viewer-content-text ol,
+.manuscript-body-text ol,
+.modal-body ol {
+    list-style-type: decimal !important;
+    list-style-position: outside !important;
+    padding-left: 32px !important;
+    margin: 12px 0 16px 0 !important;
+}
+
+.article-body-streamlined li,
+.viewer-content-text li,
+.manuscript-body-text li,
+.modal-body li {
+    display: list-item !important;
+    list-style: inherit !important;
+    margin-bottom: 6px !important;
+    line-height: inherit !important;
+}
+
+.article-body-streamlined s,
+.viewer-content-text s,
+.manuscript-body-text s,
+.modal-body s,
+.article-body-streamlined strike,
+.viewer-content-text strike,
+.manuscript-body-text strike,
+.modal-body strike {
+    text-decoration: line-through !important;
+}
+
+.article-body-streamlined sub,
+.viewer-content-text sub,
+.manuscript-body-text sub,
+.modal-body sub {
+    vertical-align: sub !important;
+    font-size: 0.75em !important;
+    line-height: 0 !important;
+}
+
+.article-body-streamlined sup,
+.viewer-content-text sup,
+.manuscript-body-text sup,
+.modal-body sup {
+    vertical-align: super !important;
+    font-size: 0.75em !important;
+    line-height: 0 !important;
 }
 
 .rich-editor-content hr {
@@ -866,7 +1014,7 @@
 }
 
 .draft-box-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
     font-size: 1.05rem;
     font-weight: 700;
     color: #101828;
@@ -1123,6 +1271,7 @@
     }
 
     .draft-box-title {
+        font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
         font-size: 0.96rem;
     }
 

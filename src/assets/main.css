@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./css/shared-ui.css";
+@import "./css/public/main.css";
 
 @theme {
   --color-wine: #700f2b;
@@ -23,9 +25,21 @@
 #modal-headline,
 .review-box-title,
 .writer-article-title,
+.article-card-title,
 .table-article-title,
-.top-article-title {
+.top-article-title,
+.draft-box-title,
+.draft-title {
   font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+}
+
+/* Toast Transition */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 
@@ -276,3 +290,228 @@
         max-width: 100% !important;
     }
 }
+
+/* ==========================================================================
+   RICH TEXT ARTICLE CONTENT & LIST FORMATTING PRESERVATION
+   Restores ordered numbers (<ol>), unordered bullets (<ul>), and block styling
+   stripped by Tailwind Preflight across all manuscript readers, editors, and roles.
+   ========================================================================== */
+.manuscript-body-text ul,
+.manuscript-prose ul,
+.article-body-streamlined ul,
+.article-content ul,
+.manuscript-content ul,
+.manuscript-body ul,
+.editor-content ul,
+.rich-text-editor ul,
+.ql-editor ul {
+    list-style-type: disc !important;
+    padding-left: 1.6rem !important;
+    margin: 0.5rem 0 !important;
+}
+
+.manuscript-body-text ol,
+.manuscript-prose ol,
+.article-body-streamlined ol,
+.article-content ol,
+.manuscript-content ol,
+.manuscript-body ol,
+.editor-content ol,
+.rich-text-editor ol,
+.ql-editor ol {
+    list-style-type: decimal !important;
+    padding-left: 1.6rem !important;
+    margin: 0.5rem 0 !important;
+}
+
+.manuscript-body-text li,
+.manuscript-prose li,
+.article-body-streamlined li,
+.article-content li,
+.manuscript-content li,
+.manuscript-body li,
+.editor-content li,
+.rich-text-editor li,
+.ql-editor li {
+    display: list-item !important;
+    margin-bottom: 0.25rem !important;
+    line-height: 1.6 !important;
+}
+
+.manuscript-body-text blockquote,
+.manuscript-prose blockquote,
+.article-body-streamlined blockquote,
+.article-content blockquote,
+.manuscript-content blockquote,
+.editor-content blockquote {
+    border-left: 3px solid var(--sidebar-maroon, #5c0a18) !important;
+    padding-left: 1rem !important;
+    margin: 0.75rem 0 !important;
+    font-style: italic !important;
+    color: #475467 !important;
+}
+
+.manuscript-body-text h2,
+.manuscript-prose h2,
+.article-body-streamlined h2,
+.article-content h2 {
+    font-size: 1.35rem !important;
+    font-weight: 700 !important;
+    margin: 1.1rem 0 0.5rem 0 !important;
+}
+
+.manuscript-body-text h3,
+.manuscript-prose h3,
+.article-body-streamlined h3,
+.article-content h3 {
+    font-size: 1.15rem !important;
+    font-weight: 700 !important;
+    margin: 0.9rem 0 0.4rem 0 !important;
+}
+
+.manuscript-body-text h4,
+.manuscript-prose h4,
+.article-body-streamlined h4,
+.article-content h4 {
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    margin: 0.75rem 0 0.35rem 0 !important;
+}
+
+/* ==========================================================================
+   UNIVERSAL SEMI-FULLSCREEN RESPONSIVE MEDIA & CARTOON INSPECTOR
+   ========================================================================== */
+.media-inspect-modal-card,
+.cover-inspect-modal-card {
+    max-width: min(92vw, 940px) !important;
+    width: min(92vw, 920px) !important;
+    max-height: 92vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: auto !important;
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.media-inspect-preview-container,
+.cover-inspect-theater {
+    width: 100% !important;
+    height: 60vh !important;
+    max-height: 65vh !important;
+    min-height: 320px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border-radius: 8px !important;
+}
+
+.media-inspect-img,
+.cover-inspect-image-fullscreen {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    border-radius: 8px !important;
+    display: block !important;
+    margin: 0 auto !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Standardized Maroon Approve Buttons */
+.btn-inspect-approve,
+.btn-cover-approve {
+    background-color: var(--sidebar-maroon, #5c0a18) !important;
+    background: var(--sidebar-maroon, #5c0a18) !important;
+    border: 1px solid var(--sidebar-maroon, #5c0a18) !important;
+    border-color: var(--sidebar-maroon, #5c0a18) !important;
+    color: #ffffff !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.18s ease !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 6px rgba(92, 10, 24, 0.25) !important;
+}
+
+.btn-inspect-approve:hover:not(:disabled),
+.btn-cover-approve:hover:not(:disabled) {
+    background-color: #780c1a !important;
+    background: #780c1a !important;
+    border-color: #780c1a !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(92, 10, 24, 0.35) !important;
+}
+
+.btn-inspect-return,
+.btn-cover-return {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #344054 !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+}
+
+.btn-inspect-return:hover,
+.btn-cover-return:hover {
+    background: #f8fafc !important;
+    background-color: #f8fafc !important;
+    border-color: #94a3b8 !important;
+    color: #1e293b !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ==========================================================================
+   ARTICLE ALIGNMENT & INDENTATION PRESERVATION
+   ========================================================================== */
+[style*="text-align: center"], [align="center"], .text-align-center {
+    text-align: center !important;
+}
+[style*="text-align: right"], [align="right"], .text-align-right {
+    text-align: right !important;
+}
+[style*="text-align: justify"], [align="justify"], .text-align-justify {
+    text-align: justify !important;
+}
+[style*="text-align: left"], [align="left"], .text-align-left {
+    text-align: left !important;
+}
+
+/* Indentations and blockquotes across all manuscripts and viewers */
+.article-content blockquote,
+.manuscript-prose blockquote,
+.viewer-content-text blockquote,
+.manuscript-text-content blockquote,
+#modal-body blockquote,
+#dash-modal-body blockquote,
+#dash-body blockquote,
+#reader-body blockquote {
+    display: block !important;
+    margin: 12px 0 12px 28px !important;
+    padding: 6px 0 6px 16px !important;
+    border-left: 3px solid var(--sidebar-maroon, #5c0a18) !important;
+    font-style: italic !important;
+    color: #475467 !important;
+}
+

@@ -9,6 +9,7 @@ import {
 } from '../../services/api.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import { currentUser } from '../../stores/auth.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-manage-accounts.css';
 
 const user = currentUser;
@@ -40,20 +41,9 @@ const editRoleId = ref('');
 const isDeactivateModalOpen = ref(false);
 const officerToDeactivate = ref(null);
 
-// Toast notification
-const toast = ref({
-    show: false,
-    message: '',
-    type: 'success',
-});
-let toastTimer = null;
-
+// Toast notification replacement
 function showToast(message, type = 'success') {
-    if (toastTimer) clearTimeout(toastTimer);
-    toast.value = { show: true, message, type };
-    toastTimer = setTimeout(() => {
-        toast.value.show = false;
-    }, 3400);
+    globalShowToast(message, type);
 }
 
 // Fallback roles for resilience
@@ -68,64 +58,40 @@ const defaultRoles = [
     { id: 8, role_name: 'Editor-in-Chief' },
     { id: 9, role_name: 'Associate Editor-in-Chief' },
     { id: 10, role_name: 'News Head' },
-    { id: 11, role_name: 'Features Head' },
-    { id: 12, role_name: 'Literature Head' },
-    { id: 13, role_name: 'Science & Technology Head' },
-    { id: 14, role_name: 'Media and Public Communications Head' },
-    { id: 15, role_name: 'Cartoonist Head' },
-    { id: 16, role_name: 'Photojournalist Head' },
-    { id: 17, role_name: 'Writer' },
-    { id: 18, role_name: 'Cartoonist' },
-    { id: 19, role_name: 'Photojournalist' },
-    { id: 20, role_name: 'Media Team' },
+    { id: 11, role_name: 'Literary Head' },
+    { id: 12, role_name: 'Feature Head' },
+    { id: 13, role_name: 'Science and Technology Head' },
+    { id: 14, role_name: 'Documentary and Podcast Head' },
+    { id: 15, role_name: 'Media and Public Communications Head' },
+    { id: 16, role_name: 'Associate Media and Public Communications Head' },
+    { id: 17, role_name: 'Photojournalist Head' },
+    { id: 18, role_name: 'Cartoonist Head' },
+    { id: 19, role_name: 'Writer' },
+    { id: 20, role_name: 'Cartoonist' },
+    { id: 21, role_name: 'Media Team' },
 ];
 
-const availableRoles = computed(() => {
-    return roles.value.length > 0 ? roles.value : defaultRoles;
+const displayRoles = computed(() => {
+    return (roles.value && roles.value.length > 0) ? roles.value : defaultRoles;
 });
 
-function resolveAvatarUrl(url) {
-    if (!url) return '/images/member-placeholder.svg';
-    const trimmed = String(url).trim();
-    if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('data:')) {
-        return optimizeCloudinaryUrl(trimmed, { width: 100, crop: 'limit' });
-    }
-    if (trimmed.startsWith('/')) {
-        return trimmed;
-    }
-    return `/${trimmed}`;
-}
+// Stats indicator
+const totalCount = computed(() => officers.value.length);
+const activeCount = computed(() => officers.value.filter(o => o.status === 'active').length);
+const deactivatedCount = computed(() => totalCount.value - activeCount.value);
 
-async function loadAccounts() {
-    isLoading.value = true;
-    try {
-        const data = await getExecutiveManageAccounts(true);
-        if (data) {
-            if (Array.isArray(data.officers)) {
-                officers.value = data.officers;
-            }
-            if (Array.isArray(data.roles)) {
-                roles.value = data.roles;
-            }
-        }
-    } catch (err) {
-        console.error('Failed to load accounts:', err);
-        showToast('Failed to load officer accounts.', 'error');
-    } finally {
-        isLoading.value = false;
-    }
-}
-
-// Filtered Accounts
+// Filtered Officers (Name, Role, Student Number + Status filter)
 const filteredOfficers = computed(() => {
     let list = officers.value;
 
-    if (statusFilter.value !== 'all') {
-        list = list.filter(o => (o.status || 'active').toLowerCase() === statusFilter.value);
+    if (statusFilter.value === 'active') {
+        list = list.filter(o => o.status === 'active');
+    } else if (statusFilter.value === 'deactivated') {
+        list = list.filter(o => o.status === 'deactivated');
     }
 
-    const q = searchQuery.value.trim().toLowerCase();
-    if (q) {
+    if (searchQuery.value.trim()) {
+        const q = searchQuery.value.toLowerCase().trim();
         list = list.filter(o => {
             const name = (o.name || '').toLowerCase();
             const studentNo = (o.studentNumber || '').toLowerCase();
@@ -137,161 +103,272 @@ const filteredOfficers = computed(() => {
     return list;
 });
 
-const activeCount = computed(() => {
-    return officers.value.filter(o => (o.status || 'active').toLowerCase() === 'active').length;
-});
+function getAvatar(avatar) {
+    if (!avatar) return '/images/member-placeholder.svg';
+    const trimmed = String(avatar).trim();
+    if (trimmed.startsWith('https://') || trimmed.startsWith('http://') || trimmed.startsWith('data:')) {
+        return optimizeCloudinaryUrl(trimmed, { width: 100, crop: 'limit' });
+    }
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
 
-// Auto-hyphenation & student number validation
+function onAvatarError(e) {
+    e.target.src = '/images/member-placeholder.svg';
+}
+
+// Student Number formatting: YYYY-NNNNN-BN-0
 function formatStudentNumber(val) {
-    let cleaned = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    let clean = (val || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     let parts = [];
-    if (cleaned.length > 0) parts.push(cleaned.substring(0, 4));
-    if (cleaned.length > 4) parts.push(cleaned.substring(4, 9));
-    if (cleaned.length > 9) parts.push(cleaned.substring(9, 11));
-    if (cleaned.length > 11) parts.push(cleaned.substring(11, 12));
+    if (clean.length > 0) parts.push(clean.substring(0, 4));
+    if (clean.length > 4) parts.push(clean.substring(4, 9));
+    if (clean.length > 9) parts.push(clean.substring(9, 11));
+    if (clean.length > 11) parts.push(clean.substring(11, 12));
     return parts.join('-');
 }
 
-function onStudentNumberInput(e) {
-    const raw = e.target.value;
-    const formatted = formatStudentNumber(raw);
-    newStudentNumber.value = formatted;
-    validateStudentNumber(formatted);
-}
-
 function validateStudentNumber(val) {
-    const regex = /^\d{4}-\d{5}-BN-0$/;
+    const regex = /^\d{4}-\d{5}-[A-Z]{2}-\d$/;
     if (!val) {
         studentNumberError.value = 'Student number is required.';
         return false;
     }
     if (!regex.test(val)) {
-        studentNumberError.value = 'Format must be YEAR-5DIGIT-BN-0 (e.g. 2024-00010-BN-0)';
+        studentNumberError.value = 'Invalid format. Use format: 2024-00010-BN-0';
         return false;
     }
     studentNumberError.value = '';
     return true;
 }
 
-// Add Account
+function onStudentNumberInput(e) {
+    const raw = e.target.value;
+    const formatted = formatStudentNumber(raw);
+    newStudentNumber.value = formatted;
+    e.target.value = formatted;
+    if (studentNumberError.value) {
+        validateStudentNumber(formatted);
+    }
+}
+
+// Load Accounts from Executive API
+async function loadData() {
+    isLoading.value = true;
+    try {
+        const data = await getExecutiveManageAccounts(true);
+        if (data) {
+            if (Array.isArray(data.officers)) {
+                officers.value = data.officers.map(o => ({
+                    id: o.id,
+                    name: o.name || o.full_name || 'Officer',
+                    studentNumber: o.student_number || o.studentNumber || '—',
+                    role: o.role_name || o.role?.name || o.role || 'Officer',
+                    role_id: o.role_id || o.role?.id || null,
+                    status: (o.status || 'active').toLowerCase(),
+                    avatar: o.avatar || null,
+                }));
+            }
+            if (Array.isArray(data.roles) && data.roles.length > 0) {
+                roles.value = data.roles;
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load accounts directory:', err);
+        showToast('Failed to load accounts directory.', 'danger');
+    } finally {
+        isLoading.value = false;
+    }
+}
+
+// Add Officer Modal
 function openAddModal() {
     newStudentNumber.value = '';
     studentNumberError.value = '';
     newFullName.value = '';
-    newRoleId.value = availableRoles.value[0]?.id || '';
+    newRoleId.value = '';
     isAddModalOpen.value = true;
-    document.body.classList.add('modal-open');
 }
 
 function closeAddModal() {
     isAddModalOpen.value = false;
     studentNumberError.value = '';
-    document.body.classList.remove('modal-open');
 }
 
-async function handleCreateAccount() {
-    if (!validateStudentNumber(newStudentNumber.value)) {
-        return;
-    }
+async function handleAddOfficer() {
+    if (!validateStudentNumber(newStudentNumber.value)) return;
     if (!newFullName.value.trim()) {
-        showToast('Please enter the officer full name.', 'error');
+        showToast('Full name is required.', 'danger');
         return;
     }
     if (!newRoleId.value) {
-        showToast('Please select a role.', 'error');
+        showToast('Please select a role.', 'danger');
         return;
     }
 
+    const confirmed = await confirmAction({
+        title: 'Create Officer Account',
+        message: `Are you sure you want to create an account for ${newFullName.value.trim()}?`,
+        confirmText: 'Create Account',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     try {
-        const res = await storeExecutiveAccount({
+        const payload = {
             student_number: newStudentNumber.value.trim(),
             full_name: newFullName.value.trim(),
             role_id: newRoleId.value,
-        });
-        showToast(res.message || 'Officer account created successfully. Default password is thelenspupBN0.', 'success');
+        };
+        const res = await storeExecutiveAccount(payload);
         closeAddModal();
-        await loadAccounts();
+        showToast(res?.message || 'Officer account created successfully!', 'success');
+        await loadData();
     } catch (err) {
-        console.error('Failed to create account:', err);
-        const msg = err.response?.data?.errors?.student_number?.[0]
-            || err.response?.data?.message
-            || 'Failed to create officer account.';
-        showToast(msg, 'error');
+        console.error('Failed to add officer:', err);
+        const msg = err.response?.data?.message || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(' ') : 'Failed to create officer account.');
+        showToast(msg, 'danger');
+        if (err.response?.data?.errors?.student_number) {
+            studentNumberError.value = Array.isArray(err.response.data.errors.student_number)
+                ? err.response.data.errors.student_number[0]
+                : err.response.data.errors.student_number;
+        }
     } finally {
         isSubmitting.value = false;
     }
 }
 
-// Edit Role
+// Edit Role Modal
 function openEditRoleModal(officer) {
     officerToEdit.value = officer;
-    const currentRoleObj = availableRoles.value.find(r => r.role_name === officer.role);
-    editRoleId.value = currentRoleObj ? currentRoleObj.id : (availableRoles.value[0]?.id || '');
+    // Pre-select matching role id if available
+    const matchedRole = displayRoles.value.find(r => 
+        String(r.id) === String(officer.role_id) || 
+        r.role_name?.toLowerCase() === (officer.role || '').toLowerCase()
+    );
+    editRoleId.value = matchedRole ? matchedRole.id : '';
     isEditRoleModalOpen.value = true;
-    document.body.classList.add('modal-open');
 }
 
 function closeEditRoleModal() {
     isEditRoleModalOpen.value = false;
     officerToEdit.value = null;
-    document.body.classList.remove('modal-open');
+    editRoleId.value = '';
 }
 
 async function handleSaveRole() {
     if (!officerToEdit.value || !editRoleId.value) return;
 
+    const id = officerToEdit.value.id;
+    const matchedRole = displayRoles.value.find(r => String(r.id) === String(editRoleId.value));
+    const roleName = matchedRole ? matchedRole.role_name : '';
+    const officerName = officerToEdit.value?.name || 'Officer';
+
+    const confirmed = await confirmAction({
+        title: 'Update Officer Role',
+        message: `Are you sure you want to change the role of ${officerName} to ${roleName}?`,
+        confirmText: 'Save Role',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     try {
-        const res = await updateExecutiveAccountRole(officerToEdit.value.id, {
+        const res = await updateExecutiveAccountRole(id, {
             role_id: editRoleId.value,
+            role: roleName,
         });
-        showToast(res.message || 'Officer role updated successfully.', 'success');
+
+        if (res && res.officer) {
+            const idx = officers.value.findIndex(o => String(o.id) === String(id));
+            if (idx !== -1) {
+                officers.value[idx] = res.officer;
+            }
+        } else {
+            const target = officers.value.find(o => String(o.id) === String(id));
+            if (target && roleName) {
+                target.role = roleName;
+            }
+            await loadData();
+        }
+
         closeEditRoleModal();
-        await loadAccounts();
+        showToast(res?.message || `Role for ${officerName} updated to ${roleName}.`, 'success');
     } catch (err) {
         console.error('Failed to update role:', err);
-        showToast(err.response?.data?.message || 'Failed to update officer role.', 'error');
+        const msg = err.response?.data?.message || 'Failed to update officer role.';
+        showToast(msg, 'danger');
     } finally {
         isSubmitting.value = false;
     }
 }
 
 // Deactivate / Reactivate
-function openToggleStatusModal(officer) {
+async function openDeactivateModal(officer) {
     officerToDeactivate.value = officer;
-    isDeactivateModalOpen.value = true;
-    document.body.classList.add('modal-open');
+    const confirmed = await confirmAction({
+        title: 'Deactivate Account',
+        message: `Are you sure you want to deactivate ${officer.name}'s account? The officer's administrative credentials will be temporarily suspended.`,
+        confirmText: 'Deactivate Account',
+        cancelText: 'Cancel',
+        type: 'danger',
+    });
+    if (!confirmed) return;
+    await handleConfirmDeactivate();
 }
 
-function closeToggleStatusModal() {
+function closeDeactivateModal() {
     isDeactivateModalOpen.value = false;
     officerToDeactivate.value = null;
-    document.body.classList.remove('modal-open');
 }
 
-async function handleConfirmToggleStatus() {
+async function handleConfirmDeactivate() {
     if (!officerToDeactivate.value) return;
 
-    const currentStatus = (officerToDeactivate.value.status || 'active').toLowerCase();
-    const newStatus = currentStatus === 'active' ? 'deactivated' : 'active';
+    const target = officerToDeactivate.value;
+    isSubmitting.value = true;
+    try {
+        const res = await toggleExecutiveAccountStatus(target.id, 'deactivated');
+        target.status = 'deactivated';
+        closeDeactivateModal();
+        showToast(res?.message || `Account for ${target.name} deactivated.`, 'danger');
+    } catch (err) {
+        console.error('Failed to deactivate account:', err);
+        const msg = err.response?.data?.message || 'Failed to deactivate account.';
+        showToast(msg, 'danger');
+    } finally {
+        isSubmitting.value = false;
+    }
+}
+
+async function handleReactivate(officer) {
+    const confirmed = await confirmAction({
+        title: 'Reactivate Account',
+        message: `Are you sure you want to reactivate ${officer.name}'s account?`,
+        confirmText: 'Reactivate',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSubmitting.value = true;
     try {
-        const res = await toggleExecutiveAccountStatus(officerToDeactivate.value.id, newStatus);
-        showToast(res.message || `Officer account ${newStatus === 'active' ? 'reactivated' : 'deactivated'}.`, 'success');
-        closeToggleStatusModal();
-        await loadAccounts();
+        const res = await toggleExecutiveAccountStatus(officer.id, 'active');
+        officer.status = 'active';
+        showToast(res?.message || `Account for ${officer.name} reactivated successfully.`, 'success');
     } catch (err) {
-        console.error('Failed to update status:', err);
-        showToast(err.response?.data?.message || 'Failed to update account status.', 'error');
+        console.error('Failed to reactivate account:', err);
+        const msg = err.response?.data?.message || 'Failed to reactivate account.';
+        showToast(msg, 'danger');
     } finally {
         isSubmitting.value = false;
     }
 }
 
 onMounted(() => {
-    loadAccounts();
+    loadData();
 });
 </script>
 
@@ -310,144 +387,161 @@ onMounted(() => {
                 </router-link>
             </div>
 
-            <div v-else>
-                <!-- Toast Notification -->
-                <transition name="fade">
-                    <div v-if="toast.show" class="toast-container">
-                        <div class="toast-message" :class="toast.type">
-                            <i :class="toast.type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'"></i>
-                            <span>{{ toast.message }}</span>
+            <div v-else class="accounts-container">
+                <!-- Header Row: Title & Active Stats Summary -->
+                <div class="accounts-header-row">
+                    <h1 class="accounts-page-title">Manage Accounts</h1>
+                    <div id="accounts-stats-indicator" class="accounts-stats-indicator">
+                        <span><strong class="stat-highlight">{{ totalCount }}</strong> Total Accounts</span>
+                        <span class="stat-dot-separator">•</span>
+                        <span><strong class="stat-highlight text-emerald-700">{{ activeCount }}</strong> Active</span>
+                        <span class="stat-dot-separator">•</span>
+                        <span><strong class="stat-highlight text-rose-700">{{ deactivatedCount }}</strong> Deactivated</span>
+                    </div>
+                </div>
+
+                <!-- Controls Bar: Search Box + Status Filter + Add Officer Button -->
+                <div class="accounts-controls-bar">
+                    <div class="accounts-controls-left">
+                        <!-- Search Box Input -->
+                        <div class="accounts-search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass accounts-search-icon" aria-hidden="true"></i>
+                            <input
+                                v-model="searchQuery"
+                                type="text"
+                                class="accounts-search-input"
+                                placeholder="Search officers by name, student number, or role..."
+                                aria-label="Search officers"
+                            >
+                            <button
+                                v-if="searchQuery"
+                                type="button"
+                                class="accounts-search-clear"
+                                style="display: block;"
+                                @click="searchQuery = ''"
+                                aria-label="Clear search"
+                            >
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <!-- Status Filter Dropdown -->
+                        <div class="status-filter-wrapper">
+                            <select
+                                v-model="statusFilter"
+                                class="status-filter-select"
+                                aria-label="Filter by account status"
+                            >
+                                <option value="all">All Accounts</option>
+                                <option value="active">Active Only</option>
+                                <option value="deactivated">Deactivated Only</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down status-filter-chevron" aria-hidden="true"></i>
                         </div>
                     </div>
-                </transition>
 
-                <div class="accounts-container">
-                    <!-- Header Row: Title & Active Stats Summary -->
-                    <div class="accounts-header-row">
-                        <h1 class="accounts-page-title">Manage Accounts</h1>
-                        <div id="accounts-stats-indicator" class="accounts-stats-indicator">
-                            <span class="stats-badge-pill">
-                                <strong>{{ activeCount }}</strong> active of {{ officers.length }} total officers
-                            </span>
-                        </div>
-                    </div>
+                    <!-- Add Officer Primary Button -->
+                    <button
+                        type="button"
+                        class="btn-add-officer"
+                        @click="openAddModal"
+                        title="Add a new officer account"
+                    >
+                        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+                        <span>Add Officer</span>
+                    </button>
+                </div>
 
-                    <!-- Controls Bar: Search Box + Status Filter + Add Officer Button -->
-                    <div class="accounts-controls-bar">
-                        <div class="accounts-controls-left">
-                            <!-- Search Box Input -->
-                            <div class="accounts-search-wrapper">
-                                <i class="fa-solid fa-magnifying-glass accounts-search-icon" aria-hidden="true"></i>
-                                <input
-                                    v-model="searchQuery"
-                                    type="text"
-                                    id="officer-search-input"
-                                    class="accounts-search-input"
-                                    placeholder="Search officers by name, student number, or role..."
-                                    aria-label="Search officers"
+                <!-- Loading State -->
+                <div v-if="isLoading" class="loading-state-container" style="text-align: center; padding: 60px 0;">
+                    <i class="fa-solid fa-spinner fa-spin fa-2x" style="color: #5c0a18;"></i>
+                    <p style="margin-top: 12px; color: #667085; font-size: 0.95rem;">Loading accounts directory...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div v-else-if="filteredOfficers.length === 0" class="empty-accounts-box">
+                    <i class="fa-solid fa-users-slash"></i>
+                    <h4 class="empty-accounts-title">
+                        {{ searchQuery || statusFilter !== 'all' ? 'No accounts found' : 'No accounts yet' }}
+                    </h4>
+                    <p v-if="searchQuery || statusFilter !== 'all'" class="empty-accounts-subtitle">
+                        Try adjusting your search query or filter settings.
+                    </p>
+                </div>
+
+                <!-- Accounts Dynamic List Container -->
+                <div v-else class="accounts-list-container" aria-live="polite">
+                    <div
+                        v-for="officer in filteredOfficers"
+                        :key="officer.id"
+                        class="account-box"
+                        :class="{ deactivated: officer.status === 'deactivated' }"
+                        :id="'account-card-' + officer.id"
+                    >
+                        <!-- Left: Profile Picture + Details -->
+                        <div class="account-info-stack">
+                            <div class="officer-avatar-wrapper" :title="officer.name">
+                                <img
+                                    :src="getAvatar(officer.avatar)"
+                                    :alt="officer.name"
+                                    class="officer-profile-img"
+                                    loading="lazy"
+                                    @error="onAvatarError"
                                 >
-                                <button
-                                    v-if="searchQuery"
-                                    type="button"
-                                    id="officer-search-clear"
-                                    class="accounts-search-clear"
-                                    aria-label="Clear search"
-                                    @click="searchQuery = ''"
-                                >
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
                             </div>
 
-                            <!-- Status Filter Dropdown -->
-                            <div class="status-filter-wrapper">
-                                <select id="status-filter-select" v-model="statusFilter" class="status-filter-select" aria-label="Filter by account status">
-                                    <option value="all">All Accounts</option>
-                                    <option value="active">Active Only</option>
-                                    <option value="deactivated">Deactivated Only</option>
-                                </select>
-                                <i class="fa-solid fa-chevron-down status-filter-chevron" aria-hidden="true"></i>
-                            </div>
-                        </div>
-
-                        <!-- Add Officer Primary Button (Maroon styled) -->
-                        <button
-                            type="button"
-                            id="btn-open-add-modal"
-                            class="btn-add-officer"
-                            style="background-color: #700f2b; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s;"
-                            title="Add a new officer account"
-                            @click="openAddModal"
-                        >
-                            <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-                            <span>Add Officer</span>
-                        </button>
-                    </div>
-
-                    <!-- Accounts Dynamic List Container -->
-                    <div id="accounts-list-container" class="accounts-list-container" aria-live="polite">
-                        <div
-                            v-for="officer in filteredOfficers"
-                            :key="officer.id"
-                            class="officer-box-card"
-                            :class="{ 'officer-deactivated': (officer.status || 'active').toLowerCase() === 'deactivated' }"
-                        >
-                            <div class="officer-card-header">
-                                <div class="officer-avatar-wrap">
-                                    <img
-                                        :src="resolveAvatarUrl(officer.avatar)"
-                                        :alt="officer.name"
-                                        class="officer-avatar-img"
-                                        loading="lazy"
-                                    >
+                            <div class="officer-details">
+                                <!-- Top Line: Full Name + Role Tag -->
+                                <div class="officer-primary-row">
+                                    <h3 class="officer-name">{{ officer.name }}</h3>
+                                    <span class="officer-role-tag">{{ officer.role }}</span>
                                 </div>
-                                <div class="officer-info-wrap">
-                                    <h3 class="officer-name-text">{{ officer.name }}</h3>
-                                    <span class="officer-student-no">{{ officer.studentNumber }}</span>
-                                </div>
-                                <div class="officer-status-wrap">
-                                    <span
-                                        class="officer-status-badge"
-                                        :class="(officer.status || 'active').toLowerCase() === 'active' ? 'status-active' : 'status-deactivated'"
-                                    >
-                                        <span class="status-indicator-dot"></span>
-                                        {{ (officer.status || 'active').toLowerCase() === 'active' ? 'Active' : 'Deactivated' }}
+
+                                <!-- Bottom Line: Account Status & Student Number -->
+                                <div class="officer-meta-row">
+                                    <span class="status-pill" :class="officer.status === 'deactivated' ? 'deactivated' : 'active'">
+                                        <span class="status-dot"></span>
+                                        <span>{{ officer.status === 'deactivated' ? 'Deactivated' : 'Active' }}</span>
                                     </span>
+                                    <span class="text-xs text-stone-500 font-mono ml-2">{{ officer.studentNumber }}</span>
                                 </div>
-                            </div>
-
-                            <div class="officer-card-body">
-                                <span class="officer-role-pill">{{ officer.role }}</span>
-                            </div>
-
-                            <div class="officer-card-actions">
-                                <button
-                                    type="button"
-                                    class="btn-officer-action btn-edit-role"
-                                    style="background-color: #700f2b; color: #fff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;"
-                                    title="Edit role"
-                                    @click="openEditRoleModal(officer)"
-                                >
-                                    <i class="fa-solid fa-user-pen"></i>
-                                    <span>Edit Role</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn-officer-action"
-                                    :class="(officer.status || 'active').toLowerCase() === 'active' ? 'btn-deactivate' : 'btn-activate'"
-                                    :title="(officer.status || 'active').toLowerCase() === 'active' ? 'Deactivate account' : 'Reactivate account'"
-                                    @click="openToggleStatusModal(officer)"
-                                >
-                                    <i :class="(officer.status || 'active').toLowerCase() === 'active' ? 'fa-solid fa-user-xmark' : 'fa-solid fa-user-check'"></i>
-                                    <span>{{ (officer.status || 'active').toLowerCase() === 'active' ? 'Deactivate' : 'Activate' }}</span>
-                                </button>
                             </div>
                         </div>
 
-                        <!-- Empty State -->
-                        <div v-if="!isLoading && filteredOfficers.length === 0" class="accounts-empty-state">
-                            <i class="fa-regular fa-id-badge empty-icon"></i>
-                            <h3 class="empty-title">No officers found</h3>
-                            <p class="empty-desc">There are no officer accounts matching your current search or filter.</p>
+                        <!-- Right Actions: Edit Role + Deactivate / Activate -->
+                        <div class="account-actions-stack">
+                            <button
+                                type="button"
+                                class="btn-account-edit-role"
+                                @click="openEditRoleModal(officer)"
+                                title="Edit officer role"
+                            >
+                                <i class="fa-solid fa-user-pen"></i>
+                                <span>Edit Role</span>
+                            </button>
+
+                            <button
+                                v-if="officer.status === 'deactivated'"
+                                type="button"
+                                class="btn-account-activate"
+                                :disabled="isSubmitting"
+                                @click="handleReactivate(officer)"
+                                title="Reactivate this account"
+                            >
+                                <i class="fa-solid fa-user-check"></i>
+                                <span>Activate</span>
+                            </button>
+                            <button
+                                v-else
+                                type="button"
+                                class="btn-account-deactivate"
+                                :disabled="isSubmitting"
+                                @click="openDeactivateModal(officer)"
+                                title="Deactivate account credentials"
+                            >
+                                <i class="fa-solid fa-user-slash"></i>
+                                <span>Deactivate</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -457,33 +551,45 @@ onMounted(() => {
         <!-- ====================================================================== -->
         <!-- MODAL 1: ADD OFFICER ACCOUNT MODAL                                     -->
         <!-- ====================================================================== -->
-        <div v-if="isAddModalOpen" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+        <div
+            v-if="isAddModalOpen"
+            id="add-officer-modal"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-modal-title"
+            @click.self="closeAddModal"
+        >
             <div class="modal-card edit-modal-card">
                 <div class="modal-header-simple">
                     <h3 id="add-modal-title" class="modal-title font-semibold text-base">
-                        <i class="fa-solid fa-user-plus text-[#700f2b]"></i>
+                        <i class="fa-solid fa-user-plus text-[#5c0a18]"></i>
                         <span>Add New Officer Account</span>
                     </h3>
-                    <button type="button" class="viewer-close-btn" aria-label="Close dialog" @click="closeAddModal">
+                    <button type="button" class="viewer-close-btn" @click="closeAddModal" aria-label="Close dialog">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <form class="edit-modal-form" @submit.prevent="handleCreateAccount">
+                <form id="add-officer-form" class="edit-modal-form" @submit.prevent="handleAddOfficer" novalidate>
                     <div class="form-field">
                         <label for="officer-input-student-id">Student Number *</label>
                         <input
                             id="officer-input-student-id"
                             :value="newStudentNumber"
+                            @input="onStudentNumberInput"
+                            @blur="validateStudentNumber(newStudentNumber)"
                             type="text"
+                            name="student_number"
                             class="form-input"
+                            :class="{ 'border-red-500': !!studentNumberError }"
                             placeholder="e.g. 2024-00010-BN-0"
                             maxlength="15"
                             required
-                            @input="onStudentNumberInput"
                         >
-                        <p v-if="studentNumberError" style="color: #dc2626; font-size: 0.74rem; margin-top: 3px;">
-                            {{ studentNumberError }}
+                        <p v-if="studentNumberError" style="color: #d92d20; font-size: 0.78rem; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span>{{ studentNumberError }}</span>
                         </p>
                         <p v-else style="color: #667085; font-size: 0.74rem; margin-top: 3px;">
                             Format: YEAR-5DIGIT-BN-0 (e.g. 2024-00010-BN-0)
@@ -496,40 +602,45 @@ onMounted(() => {
                             id="officer-input-name"
                             v-model="newFullName"
                             type="text"
+                            name="full_name"
                             class="form-input"
-                            placeholder="e.g. Juan Dela Cruz"
-                            maxlength="255"
+                            placeholder="e.g. Maria Clara Santos"
                             required
                         >
                     </div>
 
                     <div class="form-field">
-                        <label for="officer-select-role">Organizational Role *</label>
-                        <select id="officer-select-role" v-model="newRoleId" class="form-select" required>
-                            <option value="" disabled>Select role...</option>
-                            <option v-for="r in availableRoles" :key="r.id" :value="r.id">
+                        <label for="officer-input-role">Role *</label>
+                        <select
+                            id="officer-input-role"
+                            v-model="newRoleId"
+                            name="role_id"
+                            class="form-select"
+                            required
+                        >
+                            <option value="" disabled selected>Select role...</option>
+                            <option
+                                v-for="r in displayRoles"
+                                :key="r.id"
+                                :value="r.id"
+                            >
                                 {{ r.role_name }}
                             </option>
                         </select>
                     </div>
 
-                    <!-- Default Password Notice -->
-                    <div style="background: #fdf2f4; border: 1px solid #f9d8e0; border-radius: 6px; padding: 10px 14px; margin-top: 6px;">
-                        <p style="font-size: 0.78rem; color: #700f2b; margin: 0;">
-                            <i class="fa-solid fa-key" style="margin-right: 4px;"></i>
-                            Default password will be <strong>thelenspupBN0</strong>. The officer can change it upon initial login.
-                        </p>
+                    <div class="form-field">
+                        <label>Default Password</label>
+                        <div class="default-password-box" style="display: flex; align-items: center; justify-content: space-between; background-color: #fafbfc; border: 1px solid #eaecf0; border-radius: 8px; padding: 9px 12px; font-size: 0.84rem;">
+                            <span style="font-family: monospace; font-weight: 700; color: #5c0a18; letter-spacing: 0.03em;">thelenspupBN0</span>
+                            <span style="font-size: 0.72rem; color: #667085;">Initial password (changeable later)</span>
+                        </div>
                     </div>
 
-                    <div class="edit-modal-footer" style="margin-top: 18px;">
-                        <button type="button" class="btn-cancel" @click="closeAddModal">Cancel</button>
-                        <button
-                            type="submit"
-                            class="btn-save"
-                            style="background-color: #700f2b; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 600; cursor: pointer;"
-                            :disabled="isSubmitting"
-                        >
+                    <div class="modal-single-btn-footer">
+                        <button type="submit" class="btn-modal-submit-maroon btn-create-account" :disabled="isSubmitting">
                             <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
+                            <i v-else class="fa-solid fa-user-plus"></i>
                             <span>{{ isSubmitting ? 'Creating...' : 'Create Account' }}</span>
                         </button>
                     </div>
@@ -538,90 +649,73 @@ onMounted(() => {
         </div>
 
         <!-- ====================================================================== -->
-        <!-- MODAL 2: EDIT ROLE MODAL                                               -->
+        <!-- MODAL 3: EDIT OFFICER ROLE MODAL                                      -->
         <!-- ====================================================================== -->
-        <div v-if="isEditRoleModalOpen" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-role-modal-title">
+        <div
+            v-if="isEditRoleModalOpen"
+            id="edit-role-modal"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-role-modal-title"
+            @click.self="closeEditRoleModal"
+        >
             <div class="modal-card edit-modal-card">
                 <div class="modal-header-simple">
                     <h3 id="edit-role-modal-title" class="modal-title font-semibold text-base">
-                        <i class="fa-solid fa-user-pen text-[#700f2b]"></i>
-                        <span>Edit Role: {{ officerToEdit?.name }}</span>
+                        <i class="fa-solid fa-user-pen text-[#5c0a18]"></i>
+                        <span>Edit Officer Role</span>
                     </h3>
-                    <button type="button" class="viewer-close-btn" aria-label="Close dialog" @click="closeEditRoleModal">
+                    <button type="button" class="viewer-close-btn" @click="closeEditRoleModal" aria-label="Close dialog">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <div class="edit-modal-form">
+                <form id="edit-role-form" class="edit-modal-form" @submit.prevent="handleSaveRole" novalidate>
+                    <!-- Target Officer Banner -->
+                    <div class="edit-role-officer-banner">
+                        <div class="edit-role-avatar-wrap">
+                            <img
+                                :src="getAvatar(officerToEdit?.avatar)"
+                                alt="Officer Avatar"
+                                class="edit-role-avatar-img"
+                                @error="onAvatarError"
+                            >
+                        </div>
+                        <div class="edit-role-officer-info">
+                            <div class="edit-role-name">{{ officerToEdit?.name }}</div>
+                            <div class="edit-role-current">Current Role: <strong>{{ officerToEdit?.role }}</strong></div>
+                        </div>
+                    </div>
+
                     <div class="form-field">
-                        <label for="edit-officer-role-select">Select New Role *</label>
-                        <select id="edit-officer-role-select" v-model="editRoleId" class="form-select">
-                            <option v-for="r in availableRoles" :key="r.id" :value="r.id">
+                        <label for="edit-role-select">Select New Role *</label>
+                        <select
+                            id="edit-role-select"
+                            v-model="editRoleId"
+                            name="role_id"
+                            class="form-select"
+                            required
+                        >
+                            <option value="" disabled selected>Select role...</option>
+                            <option
+                                v-for="r in displayRoles"
+                                :key="r.id"
+                                :value="r.id"
+                            >
                                 {{ r.role_name }}
                             </option>
                         </select>
                     </div>
-                </div>
 
-                <div class="edit-modal-footer">
-                    <button type="button" class="btn-cancel" @click="closeEditRoleModal">Cancel</button>
-                    <button
-                        type="button"
-                        class="btn-save"
-                        style="background-color: #700f2b; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-weight: 600; cursor: pointer;"
-                        :disabled="isSubmitting"
-                        @click="handleSaveRole"
-                    >
-                        <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-                        <span>{{ isSubmitting ? 'Saving...' : 'Save Role' }}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ====================================================================== -->
-        <!-- MODAL 3: DEACTIVATE / REACTIVATE CONFIRMATION MODAL                    -->
-        <!-- ====================================================================== -->
-        <div v-if="isDeactivateModalOpen" class="modal-overlay" role="dialog" aria-modal="true">
-            <div class="modal-card confirm-modal-card">
-                <div
-                    class="confirm-icon-wrap"
-                    :class="(officerToDeactivate?.status || 'active').toLowerCase() === 'active' ? 'delete' : 'restore'"
-                >
-                    <i :class="(officerToDeactivate?.status || 'active').toLowerCase() === 'active' ? 'fa-solid fa-user-slash' : 'fa-solid fa-user-check'"></i>
-                </div>
-
-                <h3 class="confirm-title">
-                    {{ (officerToDeactivate?.status || 'active').toLowerCase() === 'active' ? 'Deactivate Account?' : 'Reactivate Account?' }}
-                </h3>
-
-                <p class="confirm-desc">
-                    {{
-                        (officerToDeactivate?.status || 'active').toLowerCase() === 'active'
-                            ? `Are you sure you want to deactivate ${officerToDeactivate?.name}'s account? They will lose access to the system until reactivated.`
-                            : `Are you sure you want to reactivate ${officerToDeactivate?.name}'s account? They will regain access to their portal.`
-                    }}
-                </p>
-
-                <div class="confirm-actions">
-                    <button type="button" class="btn-cancel" @click="closeToggleStatusModal">Cancel</button>
-                    <button
-                        type="button"
-                        class="btn-confirm"
-                        :class="(officerToDeactivate?.status || 'active').toLowerCase() === 'active' ? 'delete' : 'restore'"
-                        :disabled="isSubmitting"
-                        @click="handleConfirmToggleStatus"
-                    >
-                        <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
-                        <span>
-                            {{
-                                (officerToDeactivate?.status || 'active').toLowerCase() === 'active'
-                                    ? 'Yes, Deactivate'
-                                    : 'Yes, Reactivate'
-                            }}
-                        </span>
-                    </button>
-                </div>
+                    <div class="modal-single-btn-footer">
+                        <button type="submit" class="btn-modal-submit-maroon btn-save-role" :disabled="isSubmitting">
+                            <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin"></i>
+                            <i v-else class="fa-solid fa-check"></i>
+                            <span>{{ isSubmitting ? 'Saving...' : 'Save Role' }}</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </ExecutiveLayout>

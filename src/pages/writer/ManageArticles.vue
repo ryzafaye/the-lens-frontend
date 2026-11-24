@@ -5,6 +5,7 @@ import WriterLayout from '../../layouts/WriterLayout.vue';
 import { getWriterArticles, deleteWriterDraft } from '../../services/api.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import { formatCleanArticleContent } from '../../utils/articleContent.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-manage-my-articles.css';
 
 const router = useRouter();
@@ -17,18 +18,9 @@ const activeTab = ref('all');
 const searchQuery = ref('');
 const currentSort = ref('newest');
 
-// Toast notification state
-const toastMessage = ref('');
-const toastType = ref('success');
-let toastTimer = null;
-
+// Centered Modal Toast/Feedback replacement
 function showToast(msg, type = 'success') {
-    toastMessage.value = msg;
-    toastType.value = type;
-    if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-        toastMessage.value = '';
-    }, 3400);
+    globalShowToast(msg, type);
 }
 
 // Modal States
@@ -196,10 +188,20 @@ function goToEdit(id, event) {
     router.push({ path: '/writer/submit-article', query: { draft_id: id } });
 }
 
-function confirmDeleteDraft(art, event) {
+async function confirmDeleteDraft(art, event) {
     if (event) event.stopPropagation();
     draftToDelete.value = art;
-    isDeleteModalOpen.value = true;
+
+    const confirmed = await confirmAction({
+        title: 'Delete Draft',
+        message: `Are you sure you want to delete "${art.title}"?`,
+        confirmText: 'Delete Draft',
+        cancelText: 'Cancel',
+        type: 'danger',
+    });
+    if (!confirmed) return;
+
+    await executeDeleteDraft();
 }
 
 function cancelDelete() {
@@ -534,7 +536,7 @@ onMounted(async () => {
                     </div>
 
                     <div v-if="activeArticle.remarks && (activeArticle.status.includes('Revision') || activeArticle.status.includes('revision')) && !activeArticle.status.toLowerCase().includes('head') && !activeArticle.status.toLowerCase().includes('section')" class="viewer-remarks-container" style="margin-bottom: 20px; padding: 12px 16px; background-color: #fff1f2; border-left: 4px solid #e11d48; border-radius: 4px;">
-                        <h4 style="margin: 0 0 4px; font-size: 0.85rem; font-weight: 700; color: #9f1239;">Editorial Remarks:</h4>
+                        <h4 style="margin: 0 0 4px; font-size: 0.85rem; font-weight: 700; color: #9f1239;">Revision Remarks:</h4>
                         <p style="margin: 0; font-size: 0.85rem; color: #4c0519;">{{ activeArticle.remarks }}</p>
                     </div>
 
@@ -557,9 +559,15 @@ onMounted(async () => {
                 <div class="remarks-modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 1px solid #eaecf0; background: #fafbfc;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-comment-dots" style="color: #700f2b; font-size: 1.1rem;"></i>
-                        <h2 id="remarks-modal-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #111827;">Editorial Remarks</h2>
+                        <h2 id="remarks-modal-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #111827;">Revision Remarks</h2>
                     </div>
-                    <button type="button" class="viewer-close-btn" @click="closeRemarksModal" aria-label="Close modal">
+                    <button
+                        type="button"
+                        class="viewer-close-btn"
+                        @click="closeRemarksModal"
+                        aria-label="Close modal"
+                        style="background: transparent !important; border: none !important; width: 32px !important; height: 32px !important; border-radius: 8px !important; color: #667085 !important; font-size: 1.1rem !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; padding: 0 !important; margin: 0 0 0 auto !important; flex-shrink: 0 !important; transition: all 0.2s ease !important;"
+                    >
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
@@ -599,48 +607,6 @@ onMounted(async () => {
             </div>
         </div>
 
-        <!-- Delete Draft Confirmation Modal -->
-        <div
-            v-if="isDeleteModalOpen && draftToDelete"
-            id="delete-modal"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-heading"
-            @click.self="cancelDelete"
-        >
-            <div class="modal-card delete-modal-card">
-                <div class="delete-icon-wrapper">
-                    <i class="fa-solid fa-trash-can"></i>
-                </div>
-                <h2 id="delete-heading" class="delete-modal-title">Delete Draft Manuscript?</h2>
-                <p class="delete-modal-desc">
-                    Are you sure you want to permanently delete <strong>"{{ draftToDelete.title }}"</strong>? This action cannot be undone.
-                </p>
-                <div class="delete-modal-actions">
-                    <button type="button" id="cancel-delete-btn" class="btn-cancel" @click="cancelDelete">
-                        <span>Keep Draft</span>
-                    </button>
-                    <button
-                        type="button"
-                        id="confirm-delete-btn"
-                        class="btn-delete-confirm"
-                        :disabled="isDeleting"
-                        @click="executeDeleteDraft"
-                    >
-                        <span>{{ isDeleting ? 'Deleting…' : 'Yes, Delete' }}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Toast Notification Container -->
-        <div v-if="toastMessage" id="toast-container" class="toast-container" aria-live="polite">
-            <div class="toast-message" :class="toastType">
-                <span class="toast-bullet-dot"></span>
-                <span>{{ toastMessage }}</span>
-            </div>
-        </div>
     </WriterLayout>
 </template>
 

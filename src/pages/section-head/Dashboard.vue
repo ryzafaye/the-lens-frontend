@@ -8,10 +8,16 @@ import {
     approveSectionHeadArticle,
     updateSectionHeadReviewArticle,
     returnSectionHeadArticleForRevision,
+    resubmitArticle,
 } from '../../services/api.js';
-import { formatCleanArticleContent, cleanContentForEditing } from '../../utils/articleContent.js';
+import { formatCleanArticleContent, cleanContentForEditing, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
-import { formatActivityStatement } from '../../utils/activityGrammar.js';
+import {
+    formatActivityStatement,
+    formatPhilippineDateTime,
+    formatPhilippineRelativeTime,
+} from '../../utils/activityGrammar.js';
+import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-review-articles.css';
 
 const router = useRouter();
@@ -77,12 +83,20 @@ function getSubjectName(item) {
 
 function getTimestampText(item) {
     if (!item) return 'Recent';
+    const dateInput = item.isoDate || item.created_at || item.rawDate;
+    if (dateInput) {
+        return formatPhilippineRelativeTime(dateInput);
+    }
     return item.timestampText || item.created_at_human || item.time || 'Recent';
 }
 
 function getFormattedDate(item) {
     if (!item) return '';
-    return item.formattedDate || item.date || item.created_at || '';
+    const dateInput = item.isoDate || item.created_at || item.rawDate;
+    if (dateInput) {
+        return formatPhilippineDateTime(dateInput);
+    }
+    return item.formattedDate || item.date || '';
 }
 
 function getStatement(item) {
@@ -103,20 +117,9 @@ const user = ref({
     role: localStorage.getItem('userRole') || localStorage.getItem('sectionHeadRole') || 'Section Head',
 });
 
-// Toast notification state
-const toast = ref({
-    show: false,
-    message: '',
-    type: 'success',
-});
-let toastTimer = null;
-
+// Centered Modal Toast/Feedback replacement
 function showToast(message, type = 'success') {
-    if (toastTimer) clearTimeout(toastTimer);
-    toast.value = { show: true, message, type };
-    toastTimer = setTimeout(() => {
-        toast.value.show = false;
-    }, 3500);
+    globalShowToast(message, type);
 }
 
 // Current month name
@@ -124,11 +127,14 @@ const currentMonth = computed(() => {
     return new Date().toLocaleString('en-US', { month: 'long' });
 });
 
-// TOP 5 ARTICLES: STRICTLY "PENDING REVIEW" ONLY
+// TOP 5 ARTICLES: Include all pending review articles for this section
 const topPendingArticles = computed(() => {
-    return (pendingArticles.value || [])
-        .filter(art => (art.status || '').toLowerCase() === 'pending review')
-        .slice(0, 5);
+    const list = pendingArticles.value || [];
+    const pendingList = list.filter(art => {
+        const st = (art.status || '').toLowerCase();
+        return st.includes('pending');
+    });
+    return (pendingList.length > 0 ? pendingList : list).slice(0, 5);
 });
 
 // --------------------------------------------------------------------------
@@ -158,6 +164,80 @@ const revisionRemarks = ref('');
 const showRemarksSection = ref(false);
 const remarksError = ref('');
 
+// Remarks Modal state
+const isRemarksModalOpen = ref(false);
+const activeRemarksArticle = ref(null);
+
+function openRemarksModal(article) {
+    activeRemarksArticle.value = article;
+    isRemarksModalOpen.value = true;
+    document.body.classList.add('modal-open');
+}
+
+function closeRemarksModal() {
+    isRemarksModalOpen.value = false;
+    activeRemarksArticle.value = null;
+    document.body.classList.remove('modal-open');
+}
+
+function openManuscriptFromRemarks(article) {
+    closeRemarksModal();
+    openManuscriptModal(article);
+}
+
+// Resubmit directly from table row
+async function handleTableResubmit(article) {
+    if (isSubmitting.value) return;
+
+    // Direct table row has not been edited yet
+    showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
+    openManuscriptModal(article);
+}
+
+// Resubmit revised article from manuscript modal
+async function handleManuscriptSubmit() {
+    if (!activeManuscript.value || isSubmitting.value) return;
+
+    const newTitle = dashHeadlineRef.value ? dashHeadlineRef.value.innerText.trim() : (activeManuscript.value.title || '');
+    const newExcerpt = (dashExcerptRef.value && dashExcerptRef.value.style.display !== 'none')
+        ? dashExcerptRef.value.innerText.trim()
+        : (activeManuscript.value.excerpt || '');
+    const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
+    const newContent = cleanContentForEditing(rawBody);
+
+    if (!isArticleBodyModified(activeManuscript.value.content, newContent)) {
+        showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
+        return;
+    }
+
+    const confirmed = await confirmAction({
+        title: 'Submit Article',
+        message: `Are you sure you want to submit the revised manuscript for "${newTitle || activeManuscript.value.title}"?`,
+        confirmText: 'Submit',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
+    isSubmitting.value = true;
+    try {
+        const payload = {
+            title: newTitle,
+            excerpt: newExcerpt,
+            content: newContent,
+        };
+        const res = await resubmitArticle(activeManuscript.value.id, payload);
+        pendingArticles.value = pendingArticles.value.filter(a => String(a.id) !== String(activeManuscript.value.id));
+        metrics.value.pending = Math.max(0, (metrics.value.pending || 1) - 1);
+        closeManuscriptModal();
+        showToast(res.message || 'Article resubmitted successfully for review.', 'success');
+    } catch (err) {
+        showToast(err.response?.data?.message || 'Failed to submit revised article.', 'error');
+    } finally {
+        isSubmitting.value = false;
+    }
+}
+
 // Decoupled DOM Refs for Flawless Native In-Place Editing (Letters, Words & Spaces)
 const dashHeadlineRef = ref(null);
 const dashExcerptRef = ref(null);
@@ -167,7 +247,7 @@ const dashBodyRef = ref(null);
 
 function openManuscriptModal(article) {
     activeManuscript.value = { ...article };
-    revisionRemarks.value = article.remarks || '';
+    revisionRemarks.value = '';
     showRemarksSection.value = false;
     remarksError.value = '';
     isManuscriptModalOpen.value = true;
@@ -194,7 +274,7 @@ function openManuscriptModal(article) {
 
 function openRevisionModal(article) {
     activeManuscript.value = { ...article };
-    revisionRemarks.value = article.remarks || '';
+    revisionRemarks.value = '';
     showRemarksSection.value = true;
     remarksError.value = '';
     isManuscriptModalOpen.value = true;
@@ -237,6 +317,7 @@ function closeManuscriptModal() {
     activeManuscript.value = null;
     showRemarksSection.value = false;
     remarksError.value = '';
+    revisionRemarks.value = '';
     document.body.classList.remove('modal-open');
 }
 
@@ -254,6 +335,16 @@ function toggleRevisionRemarks() {
 // Quick Approve directly from pending table action button
 async function handleQuickApprove(article) {
     if (isSubmitting.value) return;
+
+    const confirmed = await confirmAction({
+        title: 'Approve Article',
+        message: `Are you sure you want to approve "${article.title}" and forward it to the Editor-in-Chief?`,
+        confirmText: 'Approve',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
 
     try {
@@ -284,6 +375,15 @@ async function handleSaveChanges() {
         if (dashHeadlineRef.value) dashHeadlineRef.value.focus();
         return;
     }
+
+    const confirmed = await confirmAction({
+        title: 'Save Manuscript Changes',
+        message: 'Are you sure you want to save the changes made to this manuscript?',
+        confirmText: 'Save Changes',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSubmitting.value = true;
 
@@ -339,6 +439,15 @@ async function handleSubmitRevision() {
         return;
     }
 
+    const confirmed = await confirmAction({
+        title: 'Return for Revision',
+        message: 'Are you sure you want to return this article to the author with revision remarks?',
+        confirmText: 'Return for Revision',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
+
     isSubmitting.value = true;
     remarksError.value = '';
 
@@ -371,6 +480,15 @@ async function handleApproveForEic() {
         if (dashHeadlineRef.value) dashHeadlineRef.value.focus();
         return;
     }
+
+    const confirmed = await confirmAction({
+        title: 'Approve & Forward to EIC',
+        message: 'Are you sure you want to approve this article and forward it to the Editor-in-Chief?',
+        confirmText: 'Approve Article',
+        cancelText: 'Cancel',
+        type: 'maroon',
+    });
+    if (!confirmed) return;
 
     isSubmitting.value = true;
 
@@ -470,23 +588,13 @@ async function loadDashboard(forceFresh = false) {
 }
 
 onMounted(() => {
-    loadDashboard();
+    loadDashboard(true);
 });
 </script>
 
 <template>
     <SectionHeadLayout>
         <main class="content-container">
-            <!-- Toast Notification -->
-            <div
-                v-if="toast.show"
-                :class="['toast', `toast-${toast.type}`, 'toast-show']"
-                style="position: fixed; bottom: 24px; right: 24px; z-index: 99999;"
-            >
-                <i :class="['fa-solid', toast.type === 'success' ? 'fa-circle-check' : 'fa-triangle-exclamation']"></i>
-                <span>{{ toast.message }}</span>
-            </div>
-
             <!-- Page Title Section (Exact match to executive/dashboard.blade.php) -->
             <div class="page-title-section animate-fade-in delay-1">
                 <h1 id="page-title-heading" class="page-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
@@ -537,75 +645,110 @@ onMounted(() => {
                                 </h2>
                                 <span
                                     class="panel-count-badge"
-                                    :title="`Total ${metrics.pending || 0} pending articles across this section`"
+                                    :title="`Total ${metrics.pending ?? pendingArticles.length} pending articles across this section`"
                                 >
-                                    {{ formatNumber(metrics.pending) }}
+                                    {{ formatNumber(metrics.pending ?? pendingArticles.length) }}
                                 </span>
                             </div>
                             <router-link to="/section-head/review-articles" class="panel-action-link">View all &rarr;</router-link>
                         </div>
 
                         <div class="table-responsive">
-                            <table class="data-table pending-approvals-table">
+                            <table class="data-table pending-approvals-table section-head-pending-table">
                                 <thead>
                                     <tr>
-                                        <th>Article Title</th>
-                                        <th>Date</th>
-                                        <th class="text-right">Action</th>
+                                        <th class="col-title text-center" style="text-align: center !important;">Article Title</th>
+                                        <th class="col-date text-center" style="text-align: center !important;">Date</th>
+                                        <th class="col-actions text-center" style="text-align: center !important;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr v-for="art in topPendingArticles" :key="art.id">
-                                        <td>
+                                        <td class="col-title">
                                             <div class="table-article-stack">
                                                 <button
                                                     type="button"
                                                     class="table-article-btn"
                                                     @click="openManuscriptModal(art)"
                                                     :title="`Review & Edit: ${art.title}`"
-                                                    style="font-family: 'Playfair Display', Georgia, serif !important;"
+                                                    style="font-family: 'Playfair Display', Georgia, serif !important; display: block; width: 100%; text-align: left; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important;"
                                                 >
                                                     {{ art.title }}
                                                 </button>
                                                 <div class="table-article-author-row">
                                                     <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
                                                     <span>By <strong>{{ art.author || 'Author' }}</strong></span>
+                                                    <span v-if="isRevisionStatus(art.status)" class="badge-revision-pill" style="display: inline-flex; align-items: center; gap: 4px; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 1px 6px; border-radius: 4px; font-size: 0.70rem; font-weight: 600; margin-left: 6px;">
+                                                        <i class="fa-solid fa-rotate-left"></i> For Revision
+                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td>
+                                        <td class="col-date text-center">
                                             <span class="table-date">{{ art.date }}</span>
                                         </td>
-                                        <td class="text-right">
-                                            <div class="table-actions-group">
-                                                <button
-                                                    type="button"
-                                                    class="btn-table-action btn-table-edit"
-                                                    @click="openManuscriptModal(art)"
-                                                    title="Edit writer's manuscript"
-                                                >
-                                                    <i class="fa-solid fa-pen-to-square"></i>
-                                                    <span>Edit</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    class="btn-table-action btn-table-revision"
-                                                    @click="openRevisionModal(art)"
-                                                    title="Direct to revision remarks"
-                                                >
-                                                    <i class="fa-solid fa-rotate-left"></i>
-                                                    <span>Revision</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    class="btn-table-action btn-table-approve"
-                                                    @click="handleQuickApprove(art)"
-                                                    :disabled="isSubmitting"
-                                                    title="Approve manuscript for EIC"
-                                                >
-                                                    <i class="fa-solid fa-check"></i>
-                                                    <span>Approve</span>
-                                                </button>
+                                        <td class="col-actions text-center">
+                                            <div class="table-actions-group" style="flex-wrap: wrap;">
+                                                <template v-if="isRevisionStatus(art.status)">
+                                                    <button
+                                                        type="button"
+                                                        class="btn-table-action btn-table-remarks"
+                                                        @click="openRemarksModal(art)"
+                                                        title="View revision remarks"
+                                                    >
+                                                        <i class="fa-solid fa-comment-dots"></i>
+                                                        <span>Remarks</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn-table-action btn-table-edit"
+                                                        @click="openManuscriptModal(art)"
+                                                        title="Edit manuscript"
+                                                    >
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                        <span>Edit</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn-table-action btn-table-submit"
+                                                        @click="handleTableResubmit(art)"
+                                                        :disabled="isSubmitting"
+                                                        title="Submit revised article"
+                                                    >
+                                                        <i class="fa-solid fa-paper-plane"></i>
+                                                        <span>Submit</span>
+                                                    </button>
+                                                </template>
+                                                <template v-else>
+                                                    <button
+                                                        type="button"
+                                                        class="btn-table-action btn-table-edit"
+                                                        @click="openManuscriptModal(art)"
+                                                        title="Edit writer's manuscript"
+                                                    >
+                                                        <i class="fa-solid fa-pen-to-square"></i>
+                                                        <span>Edit</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn-table-action btn-table-revision"
+                                                        @click="openRevisionModal(art)"
+                                                        title="Direct to revision remarks"
+                                                    >
+                                                        <i class="fa-solid fa-rotate-left"></i>
+                                                        <span>Revision</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="btn-table-action btn-table-approve"
+                                                        @click="handleQuickApprove(art)"
+                                                        :disabled="isSubmitting"
+                                                        title="Approve manuscript for EIC"
+                                                    >
+                                                        <i class="fa-solid fa-check"></i>
+                                                        <span>Approve</span>
+                                                    </button>
+                                                </template>
                                             </div>
                                         </td>
                                     </tr>
@@ -733,8 +876,8 @@ onMounted(() => {
                             <table class="journalists-table">
                                 <thead>
                                     <tr>
-                                        <th class="col-author">Author</th>
-                                        <th class="col-article-count">Article Count</th>
+                                        <th class="col-author" style="text-align: center !important;">Author</th>
+                                        <th class="col-article-count" style="text-align: center !important;">Article Count</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">
@@ -856,6 +999,17 @@ onMounted(() => {
                         </div>
                     </div>
 
+                    <!-- Revision Remarks Container (Standard Writer Parity) -->
+                    <div
+                        v-if="activeManuscript.remarks"
+                        id="modal-viewing-remarks"
+                        class="viewer-remarks-container"
+                        style="margin-bottom: 20px; padding: 12px 16px; background-color: #fff1f2; border-left: 4px solid #e11d48; border-radius: 4px;"
+                    >
+                        <h4 style="margin: 0 0 4px; font-size: 0.85rem; font-weight: 700; color: #9f1239;">Revision Remarks:</h4>
+                        <p style="margin: 0; font-size: 0.85rem; color: #4c0519; line-height: 1.55; white-space: pre-wrap;">{{ activeManuscript.remarks }}</p>
+                    </div>
+
                     <!-- Story Excerpt -->
                     <p
                         ref="dashExcerptRef"
@@ -908,42 +1062,129 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Footer (Exact parity with ReviewArticles: Save, For Revision / Submit Revision, Approve for EIC) -->
+                <!-- Modal Footer -->
                 <div class="manuscript-footer">
-                    <button
-                        type="button"
-                        id="modal-save-btn"
-                        class="btn-box-save btn-save-maroon"
-                        :disabled="isSubmitting"
-                        @click="handleSaveChanges"
-                        title="Save changes"
-                    >
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Save</span>
-                    </button>
+                    <template v-if="isRevisionStatus(activeManuscript.status)">
+                        <button
+                            type="button"
+                            id="modal-save-btn"
+                            class="btn-box-save"
+                            :disabled="isSubmitting"
+                            @click="handleSaveChanges"
+                            title="Save manuscript draft"
+                        >
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save</span>
+                        </button>
 
-                    <button
-                        type="button"
-                        id="modal-revision-btn"
-                        class="btn-box-revision"
-                        :disabled="isSubmitting"
-                        @click="showRemarksSection ? handleSubmitRevision() : toggleRevisionRemarks()"
-                        title="Return to writer for revision"
-                    >
-                        <i class="fa-solid fa-rotate-left"></i>
-                        <span>{{ showRemarksSection ? 'Submit Revision' : 'For Revision' }}</span>
-                    </button>
+                        <button
+                            type="button"
+                            id="modal-submit-revision-btn"
+                            class="btn-box-approve btn-approve-maroon"
+                            :disabled="isSubmitting"
+                            @click="handleManuscriptSubmit"
+                            title="Submit revised article"
+                        >
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Submit</span>
+                        </button>
+                    </template>
+                    <template v-else>
+                        <button
+                            type="button"
+                            id="modal-save-btn"
+                            class="btn-box-save btn-save-maroon"
+                            :disabled="isSubmitting"
+                            @click="handleSaveChanges"
+                            title="Save changes"
+                        >
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save</span>
+                        </button>
 
+                        <button
+                            type="button"
+                            id="modal-revision-btn"
+                            class="btn-box-revision"
+                            :disabled="isSubmitting"
+                            @click="showRemarksSection ? handleSubmitRevision() : toggleRevisionRemarks()"
+                            title="Return to writer for revision"
+                        >
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>{{ showRemarksSection ? 'Submit Revision' : 'For Revision' }}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            id="modal-approve-btn"
+                            class="btn-box-approve btn-approve-maroon"
+                            :disabled="isSubmitting"
+                            @click="handleApproveForEic"
+                            title="Approve manuscript and endorse to Editor-in-Chief"
+                        >
+                            <i class="fa-solid fa-check"></i>
+                            <span>Approve for EIC</span>
+                        </button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remarks Modal -->
+        <div
+            v-if="isRemarksModalOpen && activeRemarksArticle"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            @click.self="closeRemarksModal"
+        >
+            <div class="modal-card" style="max-width: 520px; width: 92%; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+                <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eaecf0; background: #ffffff;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-comment-dots" style="color: #5c0a18; font-size: 1.1rem;"></i>
+                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                            Revision Remarks
+                        </h3>
+                    </div>
+                    <button type="button" class="viewer-close-btn" @click="closeRemarksModal" title="Close">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 20px; background: #ffffff;">
+                    <div style="margin-bottom: 14px;">
+                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                            {{ activeRemarksArticle.title }}
+                        </h4>
+                        <div style="font-size: 0.8rem; color: #475467;">
+                            By <strong>{{ activeRemarksArticle.author || 'Author' }}</strong> &bull; {{ activeRemarksArticle.category || 'General' }}
+                        </div>
+                    </div>
+                    <div style="padding: 14px 16px; background-color: #fff1f2; border-left: 4px solid #e11d48; border-radius: 6px;">
+                        <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #9f1239; margin-bottom: 6px;">
+                            Feedback / Instructions:
+                        </div>
+                        <p style="margin: 0; font-size: 0.9rem; color: #4c0519; line-height: 1.6; white-space: pre-wrap; word-break: break-word;">
+                            {{ activeRemarksArticle.remarks || 'No specific remarks were entered.' }}
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid #eaecf0; background: #fcfcfd;">
                     <button
                         type="button"
-                        id="modal-approve-btn"
-                        class="btn-box-approve btn-approve-maroon"
-                        :disabled="isSubmitting"
-                        @click="handleApproveForEic"
-                        title="Approve manuscript and endorse to Editor-in-Chief"
+                        class="btn-secondary"
+                        @click="closeRemarksModal"
+                        style="padding: 7px 16px; border-radius: 6px; border: 1px solid #d0d5dd; background: #fff; color: #344054; font-weight: 600; cursor: pointer; transition: all 0.15s ease;"
                     >
-                        <i class="fa-solid fa-check"></i>
-                        <span>Approve for EIC</span>
+                        Close
+                    </button>
+                    <button
+                        type="button"
+                        class="btn-primary"
+                        @click="openManuscriptFromRemarks(activeRemarksArticle)"
+                        style="padding: 7px 16px; border-radius: 6px; border: 1px solid #5c0a18; background: #5c0a18; color: #fff; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s ease;"
+                    >
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit Manuscript</span>
                     </button>
                 </div>
             </div>

@@ -5,8 +5,7 @@
  * ============================================================================
  */
 
-@import 'writer-dashboard.css';
-@import 'executive-manage-articles.css';
+
 
 /* Content Container Rhythm - Sleek spacing directly connecting header to tabs */
 .content-container {
@@ -173,6 +172,16 @@
 .viewer-content-text p,
 .viewer-content-text div,
 .viewer-paragraph,
+.manuscript-text-content,
+.manuscript-prose,
+#modal-body,
+#dash-modal-body,
+#dash-body,
+#reader-body {
+    text-align: justify;
+    text-justify: inter-word;
+}
+
 .manuscript-text-content *,
 .manuscript-text-content p,
 .manuscript-text-content div,
@@ -191,16 +200,10 @@
 #reader-body *,
 #reader-body p,
 #reader-body div {
-    margin: 0 !important;
-    margin-block-start: 0 !important;
-    margin-block-end: 0 !important;
-    padding: 0 !important;
     font-family: inherit !important;
     font-size: inherit !important;
     line-height: inherit !important;
     color: inherit !important;
-    text-align: justify !important;
-    text-justify: inter-word !important;
 }
 
 .viewer-content-text div,
