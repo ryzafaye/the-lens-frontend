@@ -33,6 +33,7 @@ function safeRemoveStorage(key) {
 export const currentUser = reactive({
     id: safeGetStorage('userId'),
     full_name: safeGetStorage('userName') || safeGetStorage('writerName') || safeGetStorage('sectionHeadName') || 'Writer',
+    email: safeGetStorage('userEmail') || '',
     role: safeGetStorage('userRole') || safeGetStorage('writerRole') || safeGetStorage('sectionHeadRole') || 'Writer',
     avatar_url: safeGetStorage('userAvatar') || '/images/member-placeholder.svg',
     profile_picture_url: safeGetStorage('userAvatar') || '/images/member-placeholder.svg',
@@ -84,6 +85,11 @@ export function setAuthUser(userData) {
         safeSetStorage('studentNumber', num);
     }
 
+    if (userData.email !== undefined) {
+        currentUser.email = userData.email || '';
+        safeSetStorage('userEmail', userData.email || '');
+    }
+
     if (userData.id) {
         currentUser.id = userData.id;
         safeSetStorage('userId', String(userData.id));
@@ -95,6 +101,7 @@ export function setAuthUser(userData) {
             detail: {
                 id: currentUser.id,
                 full_name: currentUser.full_name,
+                email: currentUser.email,
                 avatar_url: currentUser.avatar_url,
                 profile_picture_url: currentUser.profile_picture_url,
                 avatar: currentUser.avatar,

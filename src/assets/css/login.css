@@ -236,6 +236,25 @@ input::-ms-clear {
     display: none;
 }
 
+#forgot-password-link {
+    font-size: 10px !important;
+    line-height: 14px !important;
+    font-weight: 500 !important;
+    color: #700f2b !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    transition: color 0.15s ease !important;
+}
+
+#forgot-password-link:hover {
+    color: #4a091b !important;
+    text-decoration: underline !important;
+}
+
 /* Explicit Button Styling (Insulated from dashboard button resets) */
 #login-button {
     background: linear-gradient(to right, #700f2b, #8d1337) !important;

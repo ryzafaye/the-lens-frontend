@@ -185,19 +185,19 @@ onMounted(() => {
                 </section>
 
                 <!-- Pagination -->
-                <div v-if="pagination && pagination.length > 3" class="mt-10 flex justify-center items-center gap-1">
+                <div v-if="pagination && pagination.length > 3" class="mt-10 flex flex-wrap justify-center items-center gap-1.5">
                     <template v-for="(link, idx) in pagination" :key="idx">
                         <button
                             v-if="link.url"
                             type="button"
-                            class="px-3 py-1.5 text-xs font-semibold rounded border transition-colors"
+                            class="min-w-[40px] min-h-[40px] px-3 py-2 text-xs font-semibold rounded border transition-colors"
                             :class="link.active ? 'bg-wine text-white border-wine' : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'"
                             @click="goToPage(parseInt(link.label) || (link.label.includes('Previous') ? currentPage - 1 : currentPage + 1))"
                             v-html="link.label"
                         ></button>
                         <span
                             v-else
-                            class="px-3 py-1.5 text-xs text-stone-400 border border-transparent select-none"
+                            class="px-2.5 py-2 text-xs text-stone-400 border border-transparent select-none"
                             v-html="link.label"
                         ></span>
                     </template>

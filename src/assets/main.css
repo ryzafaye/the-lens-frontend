@@ -515,3 +515,175 @@
     color: #475467 !important;
 }
 
+/* ==========================================================================
+   ARTICLE RICH TEXT TYPOGRAPHY (LISTS, ALIGNMENT, HEADINGS, BLOCKQUOTES)
+   Overrides Tailwind Preflight resets for all article display & review panels
+   ========================================================================== */
+.article-content ul,
+.viewer-content-text ul,
+.manuscript-body ul,
+.manuscript-text-content ul,
+.manuscript-prose ul,
+.modal-reading-content .modal-body ul,
+.modal-body.article-content ul,
+#modal-body ul,
+#dash-modal-body ul,
+#dash-body ul,
+#reader-body ul,
+#viewer-content ul {
+    list-style-type: disc !important;
+    margin-top: 0.85rem !important;
+    margin-bottom: 0.85rem !important;
+    padding-left: 2rem !important;
+}
+
+.article-content ol,
+.viewer-content-text ol,
+.manuscript-body ol,
+.manuscript-text-content ol,
+.manuscript-prose ol,
+.modal-reading-content .modal-body ol,
+.modal-body.article-content ol,
+#modal-body ol,
+#dash-modal-body ol,
+#dash-body ol,
+#reader-body ol,
+#viewer-content ol {
+    list-style-type: decimal !important;
+    margin-top: 0.85rem !important;
+    margin-bottom: 0.85rem !important;
+    padding-left: 2rem !important;
+}
+
+.article-content li,
+.viewer-content-text li,
+.manuscript-body li,
+.manuscript-text-content li,
+.manuscript-prose li,
+.modal-reading-content .modal-body li,
+.modal-body.article-content li,
+#modal-body li,
+#dash-modal-body li,
+#dash-body li,
+#reader-body li,
+#viewer-content li {
+    display: list-item !important;
+    margin-bottom: 0.35rem !important;
+    line-height: 1.7 !important;
+}
+
+.article-content h2,
+.viewer-content-text h2,
+.manuscript-text-content h2,
+.manuscript-prose h2,
+.modal-body.article-content h2 {
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0.75rem !important;
+    color: #1e293b !important;
+    line-height: 1.3 !important;
+}
+
+.article-content h3,
+.viewer-content-text h3,
+.manuscript-text-content h3,
+.manuscript-prose h3,
+.modal-body.article-content h3 {
+    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    margin-top: 1.25rem !important;
+    margin-bottom: 0.5rem !important;
+    color: #334155 !important;
+    line-height: 1.35 !important;
+}
+
+.article-content h4,
+.viewer-content-text h4,
+.manuscript-text-content h4,
+.manuscript-prose h4,
+.modal-body.article-content h4 {
+    font-size: 1.1rem !important;
+    font-weight: 600 !important;
+    margin-top: 1rem !important;
+    margin-bottom: 0.4rem !important;
+    color: #475569 !important;
+}
+
+/* ==========================================================================
+   ARTICLE MODAL HEADLINE & VIEWER SPACING OPTIMIZATION
+   Eliminates excessive empty whitespace above the headline title in all viewing modals
+   ========================================================================== */
+.manuscript-headline,
+#modal-headline,
+.viewer-title,
+#viewer-title,
+.modal-title,
+h1.viewer-title,
+h2.manuscript-headline,
+.manuscript-body > h2:first-child,
+.viewer-modal-body > h1:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.manuscript-body,
+.viewer-modal-body {
+    padding-top: 16px !important;
+}
+
+.manuscript-header,
+.viewer-modal-header {
+    padding-top: 12px !important;
+    padding-bottom: 12px !important;
+}
+
+/* ==========================================================================
+   UNIVERSAL TABLE HEADER ALIGNMENT RULE
+   "in all tables, the column name should be center, the first column name is the only one should be in left aligned"
+   ========================================================================== */
+table thead th:first-child,
+.data-table thead th:first-child,
+.pending-approvals-table thead th:first-child,
+.section-head-pending-table thead th:first-child,
+.eic-pending-approvals-table thead th:first-child,
+.journalists-table thead th:first-child,
+.transparency-table thead th:first-child,
+.pending-release-table thead th:first-child {
+    text-align: left !important;
+}
+
+table thead th:not(:first-child),
+.data-table thead th:not(:first-child),
+.pending-approvals-table thead th:not(:first-child),
+.section-head-pending-table thead th:not(:first-child),
+.eic-pending-approvals-table thead th:not(:first-child),
+.journalists-table thead th:not(:first-child),
+.transparency-table thead th:not(:first-child),
+.pending-release-table thead th:not(:first-child) {
+    text-align: center !important;
+}
+
+/* ==========================================================================
+   SIDEBAR FOOTER HOVER (PROFILE SETTINGS & VIEW PUBLIC SITE) IN ALL ROLES
+   ========================================================================== */
+.sidebar-footer-link:hover:not(.logout-btn),
+button.sidebar-footer-link:hover:not(.logout-btn),
+.mobile-nav-footer-link:hover:not(.logout-btn),
+a.sidebar-footer-link:hover:not(.logout-btn) {
+    background-color: var(--sidebar-maroon-hover, #480712) !important;
+    color: #ffffff !important;
+    cursor: pointer !important;
+}
+
+.sidebar-footer-link:hover:not(.logout-btn) i,
+button.sidebar-footer-link:hover:not(.logout-btn) i,
+.mobile-nav-footer-link:hover:not(.logout-btn) i,
+a.sidebar-footer-link:hover:not(.logout-btn) i {
+    color: #ffffff !important;
+}
+
+
+

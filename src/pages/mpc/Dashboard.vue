@@ -392,10 +392,10 @@ onMounted(() => {
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                        <th class="col-title" style="text-align: center !important;">Article Title</th>
-                                        <th class="col-category" style="text-align: center !important;">Category</th>
-                                        <th class="col-date" style="text-align: center !important;">Date</th>
-                                        <th class="col-actions" style="text-align: center !important;">Action</th>
+                                        <th class="col-title text-left" style="text-align: left !important;">Article Title</th>
+                                        <th class="col-category text-center" style="text-align: center !important;">Category</th>
+                                        <th class="col-date text-center" style="text-align: center !important;">Date</th>
+                                        <th class="col-actions text-center" style="text-align: center !important;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -593,8 +593,8 @@ onMounted(() => {
                             <table class="data-table journalists-table" style="width: 100% !important; table-layout: fixed !important;">
                                 <thead>
                                     <tr>
-                                        <th class="col-author" style="width: 58% !important; text-align: center !important;">Author</th>
-                                        <th class="col-article-count" style="width: 42% !important; min-width: 80px !important; text-align: center !important;">Article Count</th>
+                                        <th class="col-author text-left" style="width: 58% !important; text-align: left !important;">Author</th>
+                                        <th class="col-article-count text-center" style="width: 42% !important; min-width: 80px !important; text-align: center !important;">Article Count</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">

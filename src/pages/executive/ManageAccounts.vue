@@ -333,7 +333,7 @@ async function handleConfirmDeactivate() {
         const res = await toggleExecutiveAccountStatus(target.id, 'deactivated');
         target.status = 'deactivated';
         closeDeactivateModal();
-        showToast(res?.message || `Account for ${target.name} deactivated.`, 'danger');
+        showToast(res?.message || `Account for ${target.name} deactivated.`, 'success');
     } catch (err) {
         console.error('Failed to deactivate account:', err);
         const msg = err.response?.data?.message || 'Failed to deactivate account.';

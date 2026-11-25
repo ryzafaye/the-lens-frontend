@@ -163,11 +163,19 @@
     text-align: center !important;
 }
 
-/* Col 1: Article Title & Author (32%) */
+/* Col 1: First column name must be left-aligned */
 .pending-approvals-table th.col-title,
-.pending-approvals-table th:first-child {
+.pending-approvals-table th:first-child,
+.journalists-table th.col-author,
+.journalists-table th:first-child,
+.transparency-table th:first-child,
+.pending-release-table th:first-child,
+.eic-pending-approvals-table th:first-child,
+.section-head-pending-table th:first-child,
+.data-table th:first-child,
+table th:first-child {
     width: 32% !important;
-    text-align: center !important;
+    text-align: left !important;
 }
 
 .pending-approvals-table td.col-title,
@@ -285,6 +293,21 @@
 .table-author-subline i {
     font-size: 0.68rem !important;
     color: var(--sidebar-maroon, #5c0a18) !important;
+}
+
+.badge-revision-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    background: #fff1f2 !important;
+    color: #be123c !important;
+    border: 1px solid #fecdd3 !important;
+    padding: 4px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.74rem !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
 }
 
 .table-section-tag {
@@ -433,7 +456,7 @@
 
 .journalists-table th.col-author {
     width: 58% !important;
-    text-align: center !important;
+    text-align: left !important;
     padding-left: 14px !important;
     padding-right: 6px !important;
 }

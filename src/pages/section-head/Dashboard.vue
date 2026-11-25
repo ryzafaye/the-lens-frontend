@@ -657,7 +657,7 @@ onMounted(() => {
                             <table class="data-table pending-approvals-table section-head-pending-table">
                                 <thead>
                                     <tr>
-                                        <th class="col-title text-center" style="text-align: center !important;">Article Title</th>
+                                        <th class="col-title text-left" style="text-align: left !important;">Article Title</th>
                                         <th class="col-date text-center" style="text-align: center !important;">Date</th>
                                         <th class="col-actions text-center" style="text-align: center !important;">Action</th>
                                     </tr>
@@ -665,7 +665,7 @@ onMounted(() => {
                                 <tbody>
                                     <tr v-for="art in topPendingArticles" :key="art.id">
                                         <td class="col-title">
-                                            <div class="table-article-stack">
+                                             <div class="table-article-stack">
                                                 <button
                                                     type="button"
                                                     class="table-article-btn"
@@ -678,9 +678,6 @@ onMounted(() => {
                                                 <div class="table-article-author-row">
                                                     <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
                                                     <span>By <strong>{{ art.author || 'Author' }}</strong></span>
-                                                    <span v-if="isRevisionStatus(art.status)" class="badge-revision-pill" style="display: inline-flex; align-items: center; gap: 4px; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 1px 6px; border-radius: 4px; font-size: 0.70rem; font-weight: 600; margin-left: 6px;">
-                                                        <i class="fa-solid fa-rotate-left"></i> For Revision
-                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
@@ -690,6 +687,9 @@ onMounted(() => {
                                         <td class="col-actions text-center">
                                             <div class="table-actions-group" style="flex-wrap: wrap;">
                                                 <template v-if="isRevisionStatus(art.status)">
+                                                    <span class="badge-revision-pill" title="For Revision" style="display: inline-flex; align-items: center; justify-content: center; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 4px 6px; border-radius: 4px; font-size: 0.74rem; line-height: 1;">
+                                                        <i class="fa-solid fa-rotate-left"></i>
+                                                    </span>
                                                     <button
                                                         type="button"
                                                         class="btn-table-action btn-table-remarks"
@@ -876,8 +876,8 @@ onMounted(() => {
                             <table class="journalists-table">
                                 <thead>
                                     <tr>
-                                        <th class="col-author" style="text-align: center !important;">Author</th>
-                                        <th class="col-article-count" style="text-align: center !important;">Article Count</th>
+                                        <th class="col-author text-left" style="text-align: left !important;">Author</th>
+                                        <th class="col-article-count text-center" style="text-align: center !important;">Article Count</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">

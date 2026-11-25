@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getPublicArticle, shareArticle } from '../../services/api.js';
+import { formatCleanArticleContent } from '../../utils/articleContent.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -191,7 +192,7 @@ onUnmounted(() => {
                     </figure>
 
                     <!-- Sanitized Article Body -->
-                    <div class="modal-body prose prose-stone max-w-none" v-html="article.content"></div>
+                    <div class="modal-body article-content prose prose-stone max-w-none" v-html="formatCleanArticleContent(article?.content)"></div>
 
                     <!-- Engagement & Sharing Row -->
                     <div class="modal-engagement-row flex items-center justify-between">

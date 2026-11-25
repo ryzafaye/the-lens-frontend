@@ -50,6 +50,8 @@ export function clearApiCache(prefix = '') {
     }
 }
 
+export const invalidateCache = clearApiCache;
+
 /**
  * Initializes CSRF token via /api/ping only when necessary.
  * Deduplicates in-flight calls so multiple mutations in the same tick share one promise.
@@ -558,6 +560,13 @@ export async function getEicFeedback(forceFresh = false) {
     return response.data;
 }
 
+export async function markEicFeedbackRead(id) {
+    const response = await apiClient.patch(`/api/eic/feedback-inbox/${id}/read`);
+    clearApiCache('eic_feedback');
+    clearApiCache('executive_feedback');
+    return response.data;
+}
+
 // ==========================================
 // EXECUTIVE PORTAL ENDPOINTS
 // ==========================================
@@ -738,6 +747,13 @@ export async function getExecutiveFeedback(forceFresh = false) {
     }
     const response = await apiClient.get('/api/executive/feedback-inbox');
     setCache(cacheKey, response.data);
+    return response.data;
+}
+
+export async function markExecutiveFeedbackRead(id) {
+    const response = await apiClient.patch(`/api/executive/feedback-inbox/${id}/read`);
+    clearApiCache('executive_feedback');
+    clearApiCache('eic_feedback');
     return response.data;
 }
 
@@ -1204,6 +1220,8 @@ export async function getPublicOfficers(forceFresh = false) {
 
 export async function submitPublicFeedback(payload) {
     const response = await apiClient.post('/api/public/feedback', payload);
+    clearApiCache('eic_feedback');
+    clearApiCache('executive_feedback');
     return response.data;
 }
 

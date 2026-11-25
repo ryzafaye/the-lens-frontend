@@ -13,6 +13,8 @@ const isLoading = ref(true);
 // Profile form state
 const fullName = ref('');
 const studentNumber = ref('');
+const email = ref('');
+const userRole = ref('Writer');
 const avatarPreview = ref('/images/member-placeholder.svg');
 const avatarFile = ref(null);
 const removeAvatar = ref(false);
@@ -97,8 +99,8 @@ function onResetAvatar() {
 
 // Submit Profile Info
 async function handleUpdateProfile() {
-    if (!fullName.value.trim() || !studentNumber.value.trim()) {
-        showToast('Please fill in both Full Name and Student Number.', 'danger');
+    if (!fullName.value.trim() || !studentNumber.value.trim() || !email.value.trim()) {
+        showToast('Please fill in Full Name, Student Number, and Email Address.', 'danger');
         return;
     }
 
@@ -117,6 +119,7 @@ async function handleUpdateProfile() {
         const formData = new FormData();
         formData.append('full_name', fullName.value.trim());
         formData.append('student_number', studentNumber.value.trim());
+        formData.append('email', email.value.trim());
 
         if (avatarFile.value) {
             formData.append('avatar', avatarFile.value);
@@ -130,12 +133,14 @@ async function handleUpdateProfile() {
         const freshAvatar = res.profile_picture_url || res.user?.profile_picture_url || res.user?.avatar_url;
         const freshName = res.user?.full_name || fullName.value.trim();
         const freshStudent = res.user?.student_number || studentNumber.value.trim();
+        const freshEmail = res.user?.email || email.value.trim();
 
         if (removeAvatar.value) {
             avatarPreview.value = '/images/member-placeholder.svg';
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
                 avatar_url: '/images/member-placeholder.svg',
                 profile_picture_url: null,
             });
@@ -144,6 +149,7 @@ async function handleUpdateProfile() {
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
                 avatar_url: freshAvatar,
                 profile_picture_url: freshAvatar,
             });
@@ -151,6 +157,7 @@ async function handleUpdateProfile() {
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
             });
         }
 
@@ -216,9 +223,11 @@ onMounted(async () => {
     // Immediate zero-latency hydration from localStorage
     const cachedName = localStorage.getItem('userName');
     const cachedStudent = localStorage.getItem('studentNumber');
+    const cachedEmail = localStorage.getItem('userEmail');
     const cachedAvatar = localStorage.getItem('userAvatar');
     if (cachedName) fullName.value = cachedName;
     if (cachedStudent) studentNumber.value = cachedStudent;
+    if (cachedEmail) email.value = cachedEmail;
     if (cachedAvatar) avatarPreview.value = resolveAvatarUrl(cachedAvatar);
 
     try {
@@ -226,6 +235,8 @@ onMounted(async () => {
         if (data?.user) {
             fullName.value = data.user.full_name || data.user.name || '';
             studentNumber.value = data.user.student_number || data.user.studentNumber || '';
+            email.value = data.user.email || '';
+            userRole.value = data.user.role?.role_name || data.user.role || 'Writer';
             const userAvatar = data.user.profile_picture_url || data.user.avatar_url || data.user.avatarUrl;
             if (userAvatar) {
                 avatarPreview.value = resolveAvatarUrl(userAvatar);
@@ -347,6 +358,38 @@ onMounted(async () => {
                                     required
                                     maxlength="80"
                                     autocomplete="name"
+                                >
+                            </div>
+
+                            <!-- Email Address Field -->
+                            <div class="settings-field-group">
+                                <label for="input-email" class="settings-label">
+                                    <span>Email Address <span class="req">*</span></span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="input-email"
+                                    v-model="email"
+                                    class="settings-input"
+                                    placeholder="Enter your email address"
+                                    required
+                                    maxlength="255"
+                                    autocomplete="email"
+                                >
+                            </div>
+
+                            <!-- Role Field -->
+                            <div class="settings-field-group">
+                                <label for="input-officer-role" class="settings-label">
+                                    <span>Role</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="input-officer-role"
+                                    class="settings-input"
+                                    :value="userRole"
+                                    readonly
+                                    disabled
                                 >
                             </div>
 

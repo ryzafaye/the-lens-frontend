@@ -786,7 +786,7 @@ onMounted(() => {
                             <table class="data-table pending-approvals-table">
                                 <thead>
                                     <tr>
-                                        <th class="col-title" style="text-align: center !important;">Article Title</th>
+                                        <th class="col-title" style="text-align: left !important;">Article Title</th>
                                         <th class="col-category" style="text-align: center !important;">Category</th>
                                         <th class="col-date" style="text-align: center !important;">Date</th>
                                         <th class="col-actions text-center" style="text-align: center !important;">Action</th>
@@ -808,9 +808,6 @@ onMounted(() => {
                                                 <div class="table-author-subline" style="display: inline-flex !important; align-items: center !important; justify-content: flex-start !important; gap: 5px !important; text-align: left !important;">
                                                     <i class="fa-solid fa-pen-nib"></i>
                                                     <span>By <strong>{{ art.author || 'Author' }}</strong></span>
-                                                    <span v-if="isRevisionStatus(art.status)" class="badge-revision-pill" style="display: inline-flex; align-items: center; gap: 4px; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 1px 6px; border-radius: 4px; font-size: 0.70rem; font-weight: 600; margin-left: 6px;">
-                                                        <i class="fa-solid fa-rotate-left"></i> For Revision
-                                                    </span>
                                                 </div>
                                             </div>
                                         </td>
@@ -823,6 +820,9 @@ onMounted(() => {
                                         <td class="col-actions text-right">
                                             <div class="table-actions-group" style="display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 3px !important; flex-wrap: wrap !important;">
                                                 <template v-if="isRevisionStatus(art.status)">
+                                                    <span class="badge-revision-pill" title="For Revision" style="display: inline-flex; align-items: center; justify-content: center; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 4px 6px; border-radius: 4px; font-size: 0.74rem; line-height: 1;">
+                                                        <i class="fa-solid fa-rotate-left"></i>
+                                                    </span>
                                                     <button
                                                         type="button"
                                                         class="btn-table-action btn-table-remarks"
@@ -933,10 +933,10 @@ onMounted(() => {
                                 <table class="data-table transparency-table" style="width: 100% !important; min-width: 520px !important; table-layout: fixed !important;">
                                     <thead>
                                         <tr>
-                                            <th class="col-record-title" style="width: 42% !important; text-align: center !important;">Document Title</th>
-                                            <th class="col-type" style="width: 14% !important; text-align: center !important;">Type</th>
-                                            <th class="col-uploader" style="width: 24% !important; text-align: center !important;">Uploaded By</th>
-                                            <th class="col-date" style="width: 20% !important; text-align: center !important;">Action</th>
+                                            <th class="col-record-title text-left" style="width: 42% !important; text-align: left !important;">Document Title</th>
+                                            <th class="col-type text-center" style="width: 14% !important; text-align: center !important;">Type</th>
+                                            <th class="col-uploader text-center" style="width: 24% !important; text-align: center !important;">Uploaded By</th>
+                                            <th class="col-date text-center" style="width: 20% !important; text-align: center !important;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1252,8 +1252,8 @@ onMounted(() => {
                             <table class="data-table journalists-table" style="width: 100% !important; table-layout: fixed !important;">
                                 <thead>
                                     <tr>
-                                        <th class="col-author" style="width: 58% !important; text-align: center !important; white-space: normal !important; word-break: break-word !important;">Author</th>
-                                        <th class="col-article-count" style="width: 42% !important; min-width: 80px !important; text-align: center !important; white-space: normal !important; word-break: break-word !important; line-height: 1.2 !important;">Article Count</th>
+                                        <th class="col-author text-left" style="width: 58% !important; text-align: left !important; white-space: normal !important; word-break: break-word !important;">Author</th>
+                                        <th class="col-article-count text-center" style="width: 42% !important; min-width: 80px !important; text-align: center !important; white-space: normal !important; word-break: break-word !important; line-height: 1.2 !important;">Article Count</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">

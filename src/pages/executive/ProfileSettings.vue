@@ -1,12 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import ExecutiveLayout from '../../layouts/ExecutiveLayout.vue';
-import {
-    getUser,
-    updateProfileInfo,
-    updatePassword,
-} from '../../services/api.js';
-import { setAuthUser, currentUser } from '../../stores/auth.js';
+import { getUser, updateProfileInfo, updatePassword } from '../../services/api.js';
+import { setAuthUser } from '../../stores/auth.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../../utils/image.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-profile-settings.css';
@@ -17,6 +13,7 @@ const isLoading = ref(true);
 // Profile form state
 const fullName = ref('');
 const studentNumber = ref('');
+const email = ref('');
 const userRole = ref('Executive Officer');
 const avatarPreview = ref('/images/member-placeholder.svg');
 const avatarFile = ref(null);
@@ -55,68 +52,69 @@ const canSubmitPassword = computed(() => {
     return isCurrentPasswordEntered.value && isLengthValid.value && isMatchValid.value && !isSavingPassword.value;
 });
 
+// Avatar URL resolver: ensures Cloudinary and relative URLs render cleanly
 function resolveAvatarUrl(url) {
     return resolveUserAvatar(url);
 }
 
-async function loadProfile() {
-    isLoading.value = true;
-    try {
-        const data = await getUser(true);
-        const u = data?.user || data;
-        if (u) {
-            fullName.value = u.full_name || u.name || '';
-            studentNumber.value = u.student_number || u.studentNumber || '';
-            userRole.value = u.role?.role_name || u.role || 'Executive';
-            avatarPreview.value = resolveAvatarUrl(u.avatar_url || u.avatar || u.profile_picture_url);
-            setAuthUser(u);
-        }
-    } catch (err) {
-        console.error('Failed to load user profile:', err);
-        showToast('Failed to load profile details.', 'error');
-    } finally {
-        isLoading.value = false;
-    }
-}
+const computedAvatarSrc = computed(() => {
+    return resolveAvatarUrl(avatarPreview.value);
+});
 
-function handleFileChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-        showToast('Please select a valid image file.', 'error');
-        return;
-    }
-    if (file.size > 3 * 1024 * 1024) {
-        showToast('Image size cannot exceed 3MB.', 'error');
-        return;
-    }
-
-    avatarFile.value = file;
-    removeAvatar.value = false;
-    avatarPreview.value = URL.createObjectURL(file);
-}
-
-function triggerFileInput() {
+// Avatar handlers
+function triggerAvatarUpload() {
     if (fileInputRef.value) {
         fileInputRef.value.click();
     }
 }
 
-async function handleRemoveAvatar() {
-    avatarFile.value = null;
-    removeAvatar.value = true;
-    avatarPreview.value = '/images/member-placeholder.svg';
-    if (fileInputRef.value) {
-        fileInputRef.value.value = '';
+function onAvatarFileChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        showToast('Please upload a valid image file (PNG, JPG, WEBP).', 'error');
+        return;
     }
+
+    // Validate avatar max file size (3072 KB = 3MB)
+    if (file.size > 3072 * 1024) {
+        showToast('Avatar image must not exceed 3MB.', 'error');
+        e.target.value = '';
+        return;
+    }
+
+    avatarFile.value = file;
+    removeAvatar.value = false;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        avatarPreview.value = event.target?.result;
+    };
+    reader.readAsDataURL(file);
 }
 
+function handleRemoveAvatar() {
+    avatarFile.value = null;
+    avatarPreview.value = '/images/member-placeholder.svg';
+    removeAvatar.value = true;
+    if (fileInputRef.value) fileInputRef.value.value = '';
+}
+
+// Save Profile Information
 async function handleSaveProfile() {
     if (isSavingProfile.value) return;
 
     if (!fullName.value.trim()) {
-        showToast('Full name is required.', 'error');
+        showToast('Full name cannot be empty.', 'error');
+        return;
+    }
+    if (!studentNumber.value.trim()) {
+        showToast('Student number cannot be empty.', 'error');
+        return;
+    }
+    if (!email.value.trim()) {
+        showToast('Email address cannot be empty.', 'error');
         return;
     }
 
@@ -133,9 +131,8 @@ async function handleSaveProfile() {
     try {
         const formData = new FormData();
         formData.append('full_name', fullName.value.trim());
-        if (studentNumber.value.trim()) {
-            formData.append('student_number', studentNumber.value.trim());
-        }
+        formData.append('student_number', studentNumber.value.trim());
+        formData.append('email', email.value.trim());
 
         if (avatarFile.value) {
             formData.append('avatar', avatarFile.value);
@@ -149,12 +146,14 @@ async function handleSaveProfile() {
         const freshAvatar = res.profile_picture_url || res.user?.profile_picture_url || res.user?.avatar_url;
         const freshName = res.user?.full_name || fullName.value.trim();
         const freshStudent = res.user?.student_number || studentNumber.value.trim();
+        const freshEmail = res.user?.email || email.value.trim();
 
         if (removeAvatar.value) {
             avatarPreview.value = '/images/member-placeholder.svg';
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
                 avatar_url: '/images/member-placeholder.svg',
                 profile_picture_url: null,
             });
@@ -163,6 +162,7 @@ async function handleSaveProfile() {
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
                 avatar_url: freshAvatar,
                 profile_picture_url: freshAvatar,
             });
@@ -170,21 +170,34 @@ async function handleSaveProfile() {
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
             });
         }
 
         removeAvatar.value = false;
         avatarFile.value = null;
+        if (fileInputRef.value) fileInputRef.value.value = '';
     } catch (err) {
-        console.error('Failed to save profile:', err);
         showToast(err.response?.data?.message || 'Failed to update profile.', 'error');
     } finally {
         isSavingProfile.value = false;
     }
 }
 
-async function handleSavePassword() {
-    if (!canSubmitPassword.value) return;
+// Update Password
+async function handleUpdatePassword() {
+    if (!currentPassword.value) {
+        showToast('Please enter your current password.', 'error');
+        return;
+    }
+    if (!newPassword.value || newPassword.value.length < 6) {
+        showToast('New password must be at least 6 characters.', 'error');
+        return;
+    }
+    if (newPassword.value !== confirmPassword.value) {
+        showToast('New passwords do not match.', 'error');
+        return;
+    }
 
     const confirmed = await confirmAction({
         title: 'Update Password',
@@ -203,18 +216,50 @@ async function handleSavePassword() {
             new_password_confirmation: confirmPassword.value,
         });
 
-        showToast(res.message || 'Password updated successfully.', 'success');
+        showToast(res.message || 'Password changed successfully.', 'success');
         currentPassword.value = '';
         newPassword.value = '';
         confirmPassword.value = '';
     } catch (err) {
-        console.error('Failed to update password:', err);
-        const msg = err.response?.data?.errors?.current_password?.[0]
+        const errMsg = err.response?.data?.errors?.current_password?.[0]
+            || err.response?.data?.errors?.new_password?.[0]
             || err.response?.data?.message
             || 'Failed to update password. Please check your current password.';
-        showToast(msg, 'error');
+        showToast(errMsg, 'error');
     } finally {
         isSavingPassword.value = false;
+    }
+}
+
+async function loadProfile() {
+    // Immediate zero-latency hydration from cached user
+    const cachedName = localStorage.getItem('userName') || localStorage.getItem('executiveName');
+    const cachedStudent = localStorage.getItem('studentNumber');
+    const cachedEmail = localStorage.getItem('userEmail');
+    const cachedAvatar = localStorage.getItem('userAvatar');
+    if (cachedName) fullName.value = cachedName;
+    if (cachedStudent) studentNumber.value = cachedStudent;
+    if (cachedEmail) email.value = cachedEmail;
+    if (cachedAvatar) avatarPreview.value = resolveAvatarUrl(cachedAvatar);
+
+    try {
+        const data = await getUser();
+        const user = data?.user || data;
+        if (user) {
+            fullName.value = user.full_name || user.name || '';
+            studentNumber.value = user.student_number || '';
+            email.value = user.email || '';
+            userRole.value = user.role?.role_name || user.role || 'Executive Officer';
+            const userAvatar = user.profile_picture_url || user.avatar_url || user.avatar;
+            if (userAvatar) {
+                avatarPreview.value = resolveAvatarUrl(userAvatar);
+            }
+            setAuthUser(user);
+        }
+    } catch (err) {
+        console.error('Failed to load profile data:', err);
+    } finally {
+        isLoading.value = false;
     }
 }
 
@@ -226,212 +271,282 @@ onMounted(() => {
 <template>
     <ExecutiveLayout>
         <main class="content-container">
-            <!-- Toast notification -->
-            <transition name="fade">
-                <div v-if="toastMessage" class="toast-container">
-                    <div class="toast-message" :class="toastType">
-                        <i :class="toastType === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-exclamation'"></i>
-                        <span>{{ toastMessage }}</span>
+            <div class="profile-settings-container">
+                <!-- Page Header (Standard Design) -->
+                <div class="profile-header-row animate-fade-in delay-1">
+                    <div class="profile-title-wrap">
+                        <h1 class="page-title">Profile Settings</h1>
                     </div>
                 </div>
-            </transition>
 
-            <div class="profile-settings-container">
-                <!-- Page Header -->
-                <div class="settings-page-header">
-                    <h1 class="settings-page-title">Profile Settings</h1>
-                    <p class="settings-page-subtitle">Manage your account information, public editorial byline, and credentials.</p>
-                </div>
-
-                <div class="settings-grid">
-                    <!-- Section 1: Profile & Avatar Information -->
-                    <div class="settings-card">
+                <!-- 2-Column Responsive Settings Grid -->
+                <div class="profile-settings-grid animate-fade-in delay-2">
+                    <!-- CARD 1: EXECUTIVE PROFILE INFORMATION -->
+                    <section class="settings-card" aria-labelledby="exec-info-heading">
                         <div class="settings-card-header">
-                            <h2 class="settings-card-title">Editorial Identity</h2>
-                            <p class="settings-card-desc">Your official name and avatar as shown across all publication bylines.</p>
+                            <div class="settings-card-icon">
+                                <i class="fa-regular fa-id-badge"></i>
+                            </div>
+                            <div class="settings-card-titles">
+                                <h2 id="exec-info-heading">{{ userRole }} Profile</h2>
+                                <p>Update your personal details and editorial profile photo.</p>
+                            </div>
                         </div>
 
-                        <form class="settings-form" @submit.prevent="handleSaveProfile">
-                            <!-- Avatar Preview & Actions -->
-                            <div class="avatar-upload-row">
-                                <div class="avatar-preview-circle">
-                                    <img :src="avatarPreview" alt="Profile Avatar" loading="lazy">
-                                </div>
-                                <div class="avatar-controls">
-                                    <button type="button" class="btn-avatar-upload" @click="triggerFileInput">
-                                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                                        <span>Upload New Photo</span>
-                                    </button>
-                                    <button type="button" class="btn-avatar-remove" @click="handleRemoveAvatar">
-                                        <span>Remove Photo</span>
-                                    </button>
-                                    <input
-                                        ref="fileInputRef"
-                                        type="file"
-                                        accept="image/png,image/jpeg,image/webp,image/jpg"
-                                        style="display: none;"
-                                        @change="handleFileChange"
+                        <form id="profile-info-form" @submit.prevent="handleSaveProfile" class="settings-card-body" novalidate>
+                            <!-- Profile Picture Upload Row -->
+                            <div class="profile-avatar-row">
+                                <div class="avatar-preview-wrapper">
+                                    <img
+                                        id="avatar-preview-img"
+                                        class="avatar-preview-img"
+                                        :src="computedAvatarSrc"
+                                        alt="Avatar"
                                     >
-                                    <p class="avatar-hint">JPG, PNG, or WebP. Max size: 2MB.</p>
+                                </div>
+                                <div class="avatar-upload-info">
+                                    <span class="settings-label">Profile Picture</span>
+                                    <div class="avatar-actions-group">
+                                        <button
+                                            type="button"
+                                            id="btn-change-avatar"
+                                            class="btn-upload-avatar"
+                                            @click="triggerAvatarUpload"
+                                        >
+                                            <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                                            <span>Upload Photo</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            id="btn-reset-avatar"
+                                            class="btn-reset-avatar"
+                                            @click="handleRemoveAvatar"
+                                            title="Reset to default placeholder"
+                                        >
+                                            <i class="fa-regular fa-trash-can"></i>
+                                            <span>Remove</span>
+                                        </button>
+                                        <input
+                                            type="file"
+                                            ref="fileInputRef"
+                                            @change="onAvatarFileChange"
+                                            accept="image/png, image/jpeg, image/webp"
+                                            style="display: none;"
+                                            aria-label="Upload profile picture"
+                                        >
+                                    </div>
+                                    <p class="avatar-hint-text">Supported formats: JPG, PNG, or WEBP (Max 3MB).</p>
                                 </div>
                             </div>
 
-                            <!-- Full Name -->
-                            <div class="form-group">
-                                <label for="profile-full-name" class="form-label">Full Name *</label>
+                            <!-- Student Number Field -->
+                            <div class="settings-field-group">
+                                <label for="input-student-number" class="settings-label">
+                                    <span>Student Number <span class="req">*</span></span>
+                                </label>
                                 <input
-                                    id="profile-full-name"
-                                    v-model="fullName"
                                     type="text"
-                                    class="form-control"
-                                    placeholder="e.g. Maria Santos"
-                                    required
-                                >
-                            </div>
-
-                            <!-- Student Number (Read-Only) -->
-                            <div class="form-group">
-                                <label for="profile-student-number" class="form-label">Student Number</label>
-                                <input
-                                    id="profile-student-number"
+                                    id="input-student-number"
                                     v-model="studentNumber"
-                                    type="text"
-                                    class="form-control"
-                                    readonly
-                                    disabled
-                                    style="background-color: #f8fafc; cursor: not-allowed;"
+                                    class="settings-input"
+                                    placeholder="Enter your student number"
+                                    required
+                                    maxlength="30"
+                                    autocomplete="off"
                                 >
-                                <p class="form-hint">Student numbers are bound to your student account and cannot be modified.</p>
                             </div>
 
-                            <!-- Role (Read-Only) -->
-                            <div class="form-group">
-                                <label for="profile-role" class="form-label">Designated Role</label>
+                            <!-- Full Name Field -->
+                            <div class="settings-field-group">
+                                <label for="input-full-name" class="settings-label">
+                                    <span>Full Name <span class="req">*</span></span>
+                                </label>
                                 <input
-                                    id="profile-role"
-                                    v-model="userRole"
                                     type="text"
-                                    class="form-control"
-                                    readonly
-                                    disabled
-                                    style="background-color: #f8fafc; cursor: not-allowed;"
+                                    id="input-full-name"
+                                    v-model="fullName"
+                                    class="settings-input"
+                                    placeholder="Enter your full name"
+                                    required
+                                    maxlength="80"
+                                    autocomplete="name"
                                 >
                             </div>
 
-                            <div class="settings-form-footer">
+                            <!-- Email Address Field -->
+                            <div class="settings-field-group">
+                                <label for="input-email" class="settings-label">
+                                    <span>Email Address <span class="req">*</span></span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="input-email"
+                                    v-model="email"
+                                    class="settings-input"
+                                    placeholder="Enter your email address"
+                                    required
+                                    maxlength="255"
+                                    autocomplete="email"
+                                >
+                            </div>
+
+                            <!-- Role Field -->
+                            <div class="settings-field-group">
+                                <label for="input-officer-role" class="settings-label">
+                                    <span>Role</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="input-officer-role"
+                                    class="settings-input"
+                                    :value="userRole"
+                                    readonly
+                                    disabled
+                                >
+                            </div>
+
+                            <!-- Submit Action -->
+                            <div class="card-actions-row">
                                 <button
                                     type="submit"
-                                    class="btn-save-settings"
+                                    id="btn-save-profile"
+                                    class="btn-save-primary"
                                     :disabled="isSavingProfile"
                                 >
-                                    <i v-if="isSavingProfile" class="fa-solid fa-spinner fa-spin"></i>
-                                    <span>{{ isSavingProfile ? 'Saving...' : 'Save Changes' }}</span>
+                                    <i class="fa-solid fa-check"></i>
+                                    <span>{{ isSavingProfile ? 'Saving…' : 'Save Changes' }}</span>
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </section>
 
-                    <!-- Section 2: Password Security -->
-                    <div class="settings-card">
+                    <!-- CARD 2: SECURITY & PASSWORD -->
+                    <section class="settings-card" aria-labelledby="security-heading">
                         <div class="settings-card-header">
-                            <h2 class="settings-card-title">Security &amp; Password</h2>
-                            <p class="settings-card-desc">Keep your publication account secure by updating your password regularly.</p>
+                            <div class="settings-card-icon">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div class="settings-card-titles">
+                                <h2 id="security-heading">Account Security</h2>
+                                <p>Ensure your account remains safe with a strong password.</p>
+                            </div>
                         </div>
 
-                        <form class="settings-form" @submit.prevent="handleSavePassword">
-                            <!-- Current Password -->
-                            <div class="form-group">
-                                <label for="current-password" class="form-label">Current Password *</label>
+                        <form id="password-form" @submit.prevent="handleUpdatePassword" class="settings-card-body" novalidate>
+                            <!-- Current Password Field -->
+                            <div class="settings-field-group">
+                                <label for="input-current-password" class="settings-label">
+                                    <span>Current Password <span class="req">*</span></span>
+                                </label>
                                 <div class="password-input-wrapper">
                                     <input
-                                        id="current-password"
-                                        v-model="currentPassword"
                                         :type="showCurrentPassword ? 'text' : 'password'"
-                                        class="form-control"
-                                        placeholder="Enter your current password"
+                                        id="input-current-password"
+                                        v-model="currentPassword"
+                                        class="settings-input"
+                                        placeholder="Enter current password"
                                         required
+                                        autocomplete="current-password"
                                     >
                                     <button
                                         type="button"
-                                        class="toggle-password-btn"
-                                        tabindex="-1"
+                                        class="password-toggle-btn"
                                         @click="showCurrentPassword = !showCurrentPassword"
+                                        aria-label="Toggle current password visibility"
                                     >
-                                        <i :class="showCurrentPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+                                        <i class="fa-regular" :class="showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- New Password -->
-                            <div class="form-group">
-                                <label for="new-password" class="form-label">New Password *</label>
+                            <!-- New Password Field -->
+                            <div class="settings-field-group">
+                                <label for="input-new-password" class="settings-label">
+                                    <span>New Password <span class="req">*</span></span>
+                                </label>
                                 <div class="password-input-wrapper">
                                     <input
-                                        id="new-password"
-                                        v-model="newPassword"
                                         :type="showNewPassword ? 'text' : 'password'"
-                                        class="form-control"
-                                        placeholder="Minimum 6 characters"
+                                        id="input-new-password"
+                                        v-model="newPassword"
+                                        class="settings-input"
+                                        placeholder="Enter new password (min. 6 characters)"
                                         required
+                                        minlength="6"
+                                        autocomplete="new-password"
                                     >
                                     <button
                                         type="button"
-                                        class="toggle-password-btn"
-                                        tabindex="-1"
+                                        class="password-toggle-btn"
                                         @click="showNewPassword = !showNewPassword"
+                                        aria-label="Toggle new password visibility"
                                     >
-                                        <i :class="showNewPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+                                        <i class="fa-regular" :class="showNewPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Confirm Password -->
-                            <div class="form-group">
-                                <label for="confirm-password" class="form-label">Confirm New Password *</label>
+                            <!-- Confirm New Password Field -->
+                            <div class="settings-field-group">
+                                <label for="input-confirm-password" class="settings-label">
+                                    <span>Confirm New Password <span class="req">*</span></span>
+                                </label>
                                 <div class="password-input-wrapper">
                                     <input
-                                        id="confirm-password"
-                                        v-model="confirmPassword"
                                         :type="showConfirmPassword ? 'text' : 'password'"
-                                        class="form-control"
-                                        placeholder="Re-type new password"
+                                        id="input-confirm-password"
+                                        v-model="confirmPassword"
+                                        class="settings-input"
+                                        placeholder="Re-enter new password"
                                         required
+                                        minlength="6"
+                                        autocomplete="new-password"
                                     >
                                     <button
                                         type="button"
-                                        class="toggle-password-btn"
-                                        tabindex="-1"
+                                        class="password-toggle-btn"
                                         @click="showConfirmPassword = !showConfirmPassword"
+                                        aria-label="Toggle confirm password visibility"
                                     >
-                                        <i :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+                                        <i class="fa-regular" :class="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
                                     </button>
                                 </div>
                             </div>
 
-                            <!-- Password Requirement Pills -->
-                            <div class="password-criteria-list">
-                                <div class="criteria-item" :class="{ 'valid': isLengthValid }">
-                                    <i :class="isLengthValid ? 'fa-solid fa-circle-check text-emerald-600' : 'fa-regular fa-circle text-stone-400'"></i>
-                                    <span>At least 6 characters long</span>
+                            <!-- Password Requirement Checklist -->
+                            <div class="password-criteria-list" aria-live="polite">
+                                <div
+                                    class="password-criteria-item"
+                                    :class="{ met: isLengthValid, 'unmet-error': newPassword && !isLengthValid }"
+                                    id="crit-length"
+                                >
+                                    <i :class="isLengthValid ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"></i>
+                                    <span>Minimum 6 characters</span>
                                 </div>
-                                <div class="criteria-item" :class="{ 'valid': isMatchValid }">
-                                    <i :class="isMatchValid ? 'fa-solid fa-circle-check text-emerald-600' : 'fa-regular fa-circle text-stone-400'"></i>
-                                    <span>Passwords match</span>
+                                <div
+                                    class="password-criteria-item"
+                                    :class="{ met: isMatchValid, 'unmet-error': confirmPassword && !isMatchValid }"
+                                    id="crit-match"
+                                >
+                                    <i :class="isMatchValid ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'"></i>
+                                    <span>New and confirm passwords must match</span>
                                 </div>
                             </div>
 
-                            <div class="settings-form-footer">
+                            <!-- Submit Action -->
+                            <div class="card-actions-row">
                                 <button
                                     type="submit"
-                                    class="btn-save-settings"
+                                    id="btn-update-password"
+                                    class="btn-update-maroon"
                                     :disabled="!canSubmitPassword"
                                 >
-                                    <i v-if="isSavingPassword" class="fa-solid fa-spinner fa-spin"></i>
-                                    <span>{{ isSavingPassword ? 'Updating...' : 'Update Password' }}</span>
+                                    <i class="fa-solid fa-key"></i>
+                                    <span>{{ isSavingPassword ? 'Updating…' : 'Update Password' }}</span>
                                 </button>
                             </div>
                         </form>
-                    </div>
+                    </section>
                 </div>
             </div>
         </main>

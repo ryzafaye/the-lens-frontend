@@ -1,7 +1,23 @@
+import DOMPurify from 'dompurify';
+
 /**
  * Utility for normalizing and sanitizing article content across all viewers and roles.
  * Ensures consistent paragraph and line spacing matching the rich text editor (cursor size, no added margins).
  */
+
+export const ALLOWED_TAGS = [
+    'p', 'br', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote',
+    'strong', 'b', 'em', 'i', 'u', 's', 'strike', 'del',
+    'sub', 'sup', 'a', 'hr', 'div', 'code', 'pre', 'span'
+];
+
+export const ALLOWED_ATTR = ['style', 'href', 'target', 'rel', 'title', 'align', 'class'];
+
+export const SANITIZE_CONFIG = {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOW_DATA_ATTR: false,
+};
 
 export function decodeCorruptedHtmlEntities(text) {
     if (!text || typeof text !== 'string') return '';
@@ -63,10 +79,9 @@ export function formatCleanArticleContent(rawContent) {
 
     // Strip dangerous script/style/iframe tags and inline event handlers
     content = content
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-        .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        .replace(/<(script|style|iframe|object|embed)\b[^<]*(?:(?!<\/\1>)<[^<]*)*<\/\1>/gi, '')
+        .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/href\s*=\s*["']\s*javascript:[^"']*["']/gi, 'href="#"');
 
     // Normalize align="..." attribute to style="text-align: ..."
     content = content.replace(/\s*align\s*=\s*["']?(center|right|justify|left)["']?/gi, (match, align) => {
@@ -78,45 +93,28 @@ export function formatCleanArticleContent(rawContent) {
         return sanitizeInlineStyle(styleVal);
     });
 
-    // Unwrap unnecessary span tags while keeping their text intact
-    content = content
-        .replace(/<\/?span[^>]*>/gi, '');
-
     const hasHtmlTags = /<\/?(?:div|p|br|h[1-6]|blockquote|ul|ol|li|strong|b|em|i|u|s|del|strike|sub|sup|a|hr)[^>]*>/i.test(content);
 
     if (hasHtmlTags) {
-        // Standardize <p> to <div> while preserving safe inline style attributes
+        // Clean leading and trailing empty lines
         content = content
-            .replace(/<p\b([^>]*)>/gi, (match, attrs) => {
-                const safeStyle = sanitizeInlineStyle(attrs);
-                return safeStyle ? `<div${safeStyle}>` : '<div>';
-            })
-            .replace(/<\/p>/gi, '</div>');
+            .replace(/^(?:\s*<(?:div|p)[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>|<br\s*\/?>)+/gi, '')
+            .replace(/(?:\s*<(?:div|p)[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>|<br\s*\/?>)+$/gi, '');
 
-        // Normalize broken <div><br><div> constructs to standard <div><br></div>
-        content = content.replace(/<div><br\s*\/?><div>/gi, '<div><br></div>');
-
-        // Collapse excessive consecutive blank lines (3 or more) to a single break
-        content = content.replace(/(?:<div>\s*(?:<br\s*\/?>)?\s*<\/div>\s*){3,}/gi, '<div><br></div>');
-
-        // Remove leading and trailing empty lines
-        content = content
-            .replace(/^(?:<div>\s*(?:<br\s*\/?>)?\s*<\/div>\s*)+/gi, '')
-            .replace(/(?:<div>\s*(?:<br\s*\/?>)?\s*<\/div>\s*)+$/gi, '');
-
-        return content;
+        const sanitized = DOMPurify.sanitize(content, SANITIZE_CONFIG);
+        return (typeof sanitized === 'string' ? sanitized : String(sanitized)).trim();
     }
 
-    // Plain-text fallback: split by lines so single or double returns preserve exact cursor-height spacing
+    // Plain-text fallback: split by lines so single or double returns preserve clean paragraph spacing
     const lines = content.split(/\r?\n/);
     return lines.map(line => {
         const trimmed = line.trim();
-        if (!trimmed) return '<div><br></div>';
+        if (!trimmed) return '';
         if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
             return `<div class="article-bullet-item">${escapeHTML(trimmed.replace(/^[•\-]\s*/, ''))}</div>`;
         }
-        return `<div>${escapeHTML(trimmed)}</div>`;
-    }).join('');
+        return `<p>${escapeHTML(trimmed)}</p>`;
+    }).filter(Boolean).join('');
 }
 
 /**
@@ -181,9 +179,8 @@ export function prepareContentForSaving(plainText) {
 
 /**
  * Sanitizes and normalizes HTML from the rich text editor before sending to backend.
- * Preserves safe formatting tags (bold, italic, headings, quotes, links, strikethrough, alignments, indentations)
- * while converting list tags (<ul>, <ol>, <li>) into clean bullets (• ) and numbered items (1. ) so NO raw <li>
- * tags are ever transmitted to or stored in the database.
+ * Preserves safe formatting tags (bold, italic, headings, quotes, links, strikethrough, alignments, indentations, lists <ul>, <ol>, <li>)
+ * and uses DOMPurify to eliminate XSS, stripped tags, and broken attributes.
  */
 export function sanitizeRichArticleHtml(rawHtml) {
     if (!rawHtml || typeof rawHtml !== 'string') return '';
@@ -191,40 +188,13 @@ export function sanitizeRichArticleHtml(rawHtml) {
 
     // Strip dangerous scripts, styles, iframes, objects, embeds, and event handlers
     html = html
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-        .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-        .replace(/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/gi, '')
-        .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+        .replace(/<(script|style|iframe|object|embed)\b[^<]*(?:(?!<\/\1>)<[^<]*)*<\/\1>/gi, '')
+        .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+        .replace(/href\s*=\s*["']\s*javascript:[^"']*["']/gi, 'href="#"');
 
-    // Convert ordered lists into numbered text paragraphs
-    html = html.replace(/<ol\b[^>]*>(.*?)<\/ol>/gis, (match, listContent) => {
-        let index = 1;
-        const replaced = listContent.replace(/<li\b[^>]*>(.*?)<\/li>/gis, (liMatch, itemText) => {
-            const cleanItem = itemText.replace(/<\/?(?:div|p)[^>]*>/gi, '').trim();
-            const numLine = `<div>${index}. ${cleanItem}</div>`;
-            index++;
-            return numLine;
-        });
-        return replaced;
-    });
-
-    // Convert unordered lists into clean bullet text paragraphs
-    html = html.replace(/<ul\b[^>]*>(.*?)<\/ul>/gis, (match, listContent) => {
-        return listContent.replace(/<li\b[^>]*>(.*?)<\/li>/gis, (liMatch, itemText) => {
-            const cleanItem = itemText.replace(/<\/?(?:div|p)[^>]*>/gi, '').trim();
-            return `<div>• ${cleanItem}</div>`;
-        });
-    });
-
-    // Handle any stray list tags
-    html = html.replace(/<li\b[^>]*>(.*?)<\/li>/gis, (match, itemText) => {
-        const cleanItem = itemText.replace(/<\/?(?:div|p)[^>]*>/gi, '').trim();
-        return `<div>• ${cleanItem}</div>`;
-    });
-    html = html.replace(/<\/?(?:ul|ol|li)[^>]*>/gi, '');
-    html = html.replace(/&lt;\/?(?:ul|ol|li)[^&gt;]*&gt;/gi, '');
+    // Remove empty <div><br></div>, <p><br></p>, and raw <br> empty lines completely
+    html = html.replace(/<(?:div|p)[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>/gi, '');
+    html = html.replace(/<div[^>]*><br\s*\/?>/gi, '');
 
     // Normalize align="..." to style="text-align: ..."
     html = html.replace(/\s*align\s*=\s*["']?(center|right|justify|left)["']?/gi, (match, align) => {
@@ -236,17 +206,37 @@ export function sanitizeRichArticleHtml(rawHtml) {
         return sanitizeInlineStyle(styleVal);
     });
 
-    // Unwrap useless font tags and empty spans while preserving text
-    html = html
-        .replace(/<\/?font[^>]*>/gi, '')
-        .replace(/<\/?span[^>]*>/gi, '');
+    // Convert any <div> wrapper to semantic <p>
+    html = html.replace(/<div(\s+[^>]*)?>(.*?)<\/div>/gis, (match, attrs, inner) => {
+        const trimmedInner = inner.trim();
+        if (!trimmedInner || /^(?:<br\s*\/?>|\s*)+$/i.test(trimmedInner)) {
+            return '';
+        }
+        return `<p${attrs ? ' ' + attrs.trim() : ''}>${trimmedInner}</p>`;
+    });
+
+    // Strip any residual div, br, code, pre tags
+    html = html.replace(/<\/?(?:div|br|code|pre)\b[^>]*>/gi, '');
+    html = html.replace(/&lt;\/?(?:div|br|code|pre)\b[^&gt;]*&gt;/gi, '');
+
+    // Strip empty tags
+    html = html.replace(/<(?:p|h[1-6]|blockquote)[^>]*>\s*<\/(?:p|h[1-6]|blockquote)>/gi, '');
 
     // Clean redundant empty lines at beginning or end
     html = html
-        .replace(/^(?:<(?:div|p)>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>)+/gi, '')
-        .replace(/(?:<(?:div|p)>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>)+$/gi, '');
+        .replace(/^(?:\s*<p[^>]*>\s*<\/p>)+/gi, '')
+        .replace(/(?:\s*<p[^>]*>\s*<\/p>)+$/gi, '');
 
-    return html.trim();
+    const sanitized = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: [
+            'p', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote',
+            'strong', 'b', 'em', 'i', 'u', 's', 'del', 'strike',
+            'sub', 'sup', 'a', 'hr'
+        ],
+        ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'style'],
+        ALLOW_DATA_ATTR: false
+    });
+    return (typeof sanitized === 'string' ? sanitized : String(sanitized)).trim();
 }
 
 /**

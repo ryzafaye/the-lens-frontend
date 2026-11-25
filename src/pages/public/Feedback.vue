@@ -6,6 +6,7 @@ import '../../assets/css/public/feedback.css';
 
 const form = ref({
     name: '',
+    email: '',
     subject: '',
     message: '',
 });
@@ -20,6 +21,7 @@ const messageCount = computed(() => {
 
 function resetForm() {
     form.value.name = '';
+    form.value.email = '';
     form.value.subject = '';
     form.value.message = '';
     successMessage.value = '';
@@ -39,6 +41,7 @@ async function handleSubmit() {
     try {
         const payload = {
             name: form.value.name.trim() || null,
+            email: form.value.email.trim() || null,
             subject: form.value.subject.trim(),
             message: form.value.message.trim(),
             category: 'editorial',
@@ -46,6 +49,7 @@ async function handleSubmit() {
         const res = await submitPublicFeedback(payload);
         successMessage.value = res?.message || 'Thank you for sharing your thoughts with the editorial board. Your message has been safely logged in the publication inbox.';
         form.value.name = '';
+        form.value.email = '';
         form.value.subject = '';
         form.value.message = '';
         window.scrollTo({ top: 120, behavior: 'smooth' });
@@ -145,6 +149,20 @@ async function handleSubmit() {
                                 maxlength="80"
                                 autocomplete="name"
                                 placeholder="Your name or pseudonym"
+                            >
+                        </div>
+
+                        <div class="feedback-field">
+                            <label for="feedback-email">
+                                Email <span>(optional)</span>
+                            </label>
+                            <input
+                                type="email"
+                                id="feedback-email"
+                                v-model="form.email"
+                                maxlength="150"
+                                autocomplete="email"
+                                placeholder="you@example.com"
                             >
                         </div>
 
