@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { logout } from '../services/api.js';
 import { currentUser, setAuthUser, clearAuthUser, useAuthStore } from '../stores/auth.js';
+import { useSidebarPendingCounts } from '../composables/useSidebarPendingCounts.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../utils/image.js';
 import LogoutModal from '../components/LogoutModal.vue';
 const logoImg = '/images/logo.jpg';
@@ -14,6 +15,7 @@ const route = useRoute();
 
 // Global reactive user state so any profile update immediately reflects across sidebar and header without refresh
 const user = currentUser;
+const { pendingCounts } = useSidebarPendingCounts('eic');
 
 // UI states
 const isMobileNavOpen = ref(false);
@@ -196,6 +198,14 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Review Article</span>
+                        <span
+                            v-if="pendingCounts.reviewArticles !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.reviewArticles === 0 }"
+                            :title="`${pendingCounts.reviewArticles} pending article approval${pendingCounts.reviewArticles === 1 ? '' : 's'}`"
+                        >
+                            {{ pendingCounts.reviewArticles > 99 ? '99+' : pendingCounts.reviewArticles }}
+                        </span>
                     </router-link>
 
                     <router-link
@@ -206,6 +216,14 @@ onUnmounted(() => {
                     >
                         <i class="fa-regular fa-image"></i>
                         <span>Media Desk</span>
+                        <span
+                            v-if="pendingCounts.mediaDesk !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.mediaDesk === 0 }"
+                            :title="`${pendingCounts.mediaDesk} pending media approval${pendingCounts.mediaDesk === 1 ? '' : 's'}`"
+                        >
+                            {{ pendingCounts.mediaDesk > 99 ? '99+' : pendingCounts.mediaDesk }}
+                        </span>
                     </router-link>
 
                     <router-link
@@ -396,6 +414,13 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Review Article</span>
+                        <span
+                            v-if="pendingCounts.reviewArticles !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.reviewArticles === 0 }"
+                        >
+                            {{ pendingCounts.reviewArticles > 99 ? '99+' : pendingCounts.reviewArticles }}
+                        </span>
                     </router-link>
 
                     <router-link
@@ -406,6 +431,13 @@ onUnmounted(() => {
                     >
                         <i class="fa-regular fa-image"></i>
                         <span>Media Desk</span>
+                        <span
+                            v-if="pendingCounts.mediaDesk !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.mediaDesk === 0 }"
+                        >
+                            {{ pendingCounts.mediaDesk > 99 ? '99+' : pendingCounts.mediaDesk }}
+                        </span>
                     </router-link>
 
                     <router-link

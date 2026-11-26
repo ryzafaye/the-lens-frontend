@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import ExecutiveLayout from '../../layouts/ExecutiveLayout.vue';
+import PendingApprovalTable from '../../components/PendingApprovalTable.vue';
 import {
     getExecutiveDashboard,
     updateExecutiveReviewArticle,
@@ -9,13 +10,14 @@ import {
     returnExecutiveArticleForRevision,
     resubmitArticle,
 } from '../../services/api.js';
-import { formatCleanArticleContent, cleanContentForEditing, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
+import { formatCleanArticleContent, sanitizeRichArticleHtml, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import {
     formatActivityStatement,
     formatPhilippineDateTime,
     formatPhilippineRelativeTime,
 } from '../../utils/activityGrammar.js';
+import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
 import { currentUser } from '../../stores/auth.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-dashboard.css';
@@ -310,7 +312,7 @@ async function handleManuscriptSubmit() {
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
     const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
     if (!isArticleBodyModified(activeManuscript.value.content, newContent)) {
         showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
@@ -437,7 +439,7 @@ async function handleApprove(articleId = null) {
                 payload.excerpt = dashExcerptRef.value.innerText.trim();
             }
             if (dashBodyRef.value) {
-                payload.content = cleanContentForEditing(dashBodyRef.value.innerHTML);
+                payload.content = sanitizeRichArticleHtml(dashBodyRef.value.innerHTML);
             }
         }
 
@@ -514,7 +516,7 @@ async function handleSaveManuscriptChanges() {
     const excerpt = (dashExcerptRef.value && dashExcerptRef.value.style.display !== 'none')
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
-    const content = cleanContentForEditing(dashBodyRef.value?.innerHTML || activeManuscript.value.content);
+    const content = sanitizeRichArticleHtml(dashBodyRef.value?.innerHTML || activeManuscript.value.content);
 
     isSubmitting.value = true;
     try {
@@ -696,8 +698,25 @@ function editMyArticle(articleId, event) {
     router.push({ path: '/executive/submit-article', query: { draft_id: articleId } });
 }
 
+const openActionMenuId = ref(null);
+function toggleActionMenu(id) {
+    openActionMenuId.value = openActionMenuId.value === id ? null : id;
+}
+function closeActionMenu() {
+    openActionMenuId.value = null;
+}
+
 onMounted(() => {
     loadDashboardData();
+    if (typeof document !== 'undefined') {
+        document.addEventListener('click', closeActionMenu);
+    }
+});
+
+onUnmounted(() => {
+    if (typeof document !== 'undefined') {
+        document.removeEventListener('click', closeActionMenu);
+    }
 });
 </script>
 
@@ -771,7 +790,7 @@ onMounted(() => {
                     <section v-if="isPresOrVp" class="card-panel animate-fade-in delay-2" aria-labelledby="pending-approval-heading">
                         <div class="panel-header">
                             <div class="panel-title-group">
-                                <h2 id="pending-approval-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">Pending Approval</h2>
+                                <h2 id="pending-approval-heading" class="panel-title">Pending Approval</h2>
                                 <span class="panel-count-badge" :title="`Total ${metrics.pending ?? pendingArticles.length} pending submissions across section`">{{ formatNumber(metrics.pending ?? pendingArticles.length) }}</span>
                             </div>
                             <router-link
@@ -782,123 +801,17 @@ onMounted(() => {
                             </router-link>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="data-table pending-approvals-table">
-                                <thead>
-                                    <tr>
-                                        <th class="col-title" style="text-align: left !important;">Article Title</th>
-                                        <th class="col-category" style="text-align: center !important;">Category</th>
-                                        <th class="col-date" style="text-align: center !important;">Date</th>
-                                        <th class="col-actions text-center" style="text-align: center !important;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="art in displayedPendingArticles" :key="art.id">
-                                        <td class="col-title">
-                                            <div class="table-article-info" style="display: flex !important; flex-direction: column !important; align-items: flex-start !important; text-align: left !important; width: 100% !important;">
-                                                <button
-                                                    type="button"
-                                                    class="table-article-btn"
-                                                    :title="art.title"
-                                                    style="font-family: 'Playfair Display', Georgia, serif !important; text-align: left !important; display: block !important; width: 100% !important; padding: 0 !important; margin: 0 0 3px 0 !important; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important;"
-                                                    @click="openManuscriptModal(art, false)"
-                                                >
-                                                    {{ art.title }}
-                                                </button>
-                                                <div class="table-author-subline" style="display: inline-flex !important; align-items: center !important; justify-content: flex-start !important; gap: 5px !important; text-align: left !important;">
-                                                    <i class="fa-solid fa-pen-nib"></i>
-                                                    <span>By <strong>{{ art.author || 'Author' }}</strong></span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="col-category">
-                                            <span class="table-section-tag" :title="art.category">{{ art.category || 'General' }}</span>
-                                        </td>
-                                        <td class="col-date">
-                                            <span class="table-date">{{ art.date }}</span>
-                                        </td>
-                                        <td class="col-actions text-right">
-                                            <div class="table-actions-group" style="display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 3px !important; flex-wrap: wrap !important;">
-                                                <template v-if="isRevisionStatus(art.status)">
-                                                    <span class="badge-revision-pill" title="For Revision" style="display: inline-flex; align-items: center; justify-content: center; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 4px 6px; border-radius: 4px; font-size: 0.74rem; line-height: 1;">
-                                                        <i class="fa-solid fa-rotate-left"></i>
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-remarks"
-                                                        title="View Revision Remarks"
-                                                        style="padding: 3px 6px !important; font-size: 0.69rem !important; height: 25px !important; white-space: nowrap !important; flex-shrink: 0 !important;"
-                                                        @click="openRemarksModal(art)"
-                                                    >
-                                                        <i class="fa-solid fa-comment-dots"></i>
-                                                        <span>Remarks</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-edit"
-                                                        title="Edit Article"
-                                                        style="padding: 3px 6px !important; font-size: 0.69rem !important; height: 25px !important; white-space: nowrap !important; flex-shrink: 0 !important;"
-                                                        @click="openManuscriptModal(art, false)"
-                                                    >
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-submit"
-                                                        title="Submit Revised Article"
-                                                        :disabled="isSubmitting"
-                                                        style="padding: 3px 6px !important; font-size: 0.69rem !important; height: 25px !important; white-space: nowrap !important; flex-shrink: 0 !important;"
-                                                        @click="handleTableResubmit(art)"
-                                                    >
-                                                        <i class="fa-solid fa-paper-plane"></i>
-                                                        <span>Submit</span>
-                                                    </button>
-                                                </template>
-                                                <template v-else>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-edit"
-                                                        title="Edit Article"
-                                                        style="padding: 3px 6px !important; font-size: 0.69rem !important; height: 25px !important; white-space: nowrap !important; flex-shrink: 0 !important;"
-                                                        @click="openManuscriptModal(art, false)"
-                                                    >
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-revision"
-                                                        title="Return for Revision"
-                                                        style="padding: 3px 6px !important; font-size: 0.69rem !important; height: 25px !important; white-space: nowrap !important; flex-shrink: 0 !important;"
-                                                        @click="openRevisionModal(art)"
-                                                    >
-                                                        <i class="fa-solid fa-rotate-left"></i>
-                                                        <span>Revision</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-approve"
-                                                        title="Approve Article"
-                                                        :disabled="isSubmitting"
-                                                        style="padding: 3px 6px !important; font-size: 0.69rem !important; height: 25px !important; white-space: nowrap !important; flex-shrink: 0 !important;"
-                                                        @click="handleApprove(art.id)"
-                                                    >
-                                                        <i class="fa-solid fa-check"></i>
-                                                        <span>Approve</span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="!isLoading && pendingArticles.length === 0">
-                                        <td colspan="4" class="empty-state-cell" style="font-size: 0.85rem; color: #667085; text-align: center; padding: 24px 0; border-bottom: none; pointer-events: none; background: transparent;">
-                                            No pending submissions yet.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <PendingApprovalTable
+                            :articles="displayedPendingArticles"
+                            :is-loading="isLoading"
+                            :is-submitting="isSubmitting"
+                            empty-text="No pending submissions yet."
+                            @open-manuscript="openManuscriptModal($event, false)"
+                            @approve="handleApprove($event.id)"
+                            @revision="openRevisionModal"
+                            @resubmit="handleTableResubmit"
+                            @remarks="openRemarksModal"
+                        />
                     </section>
 
                     <!-- CASE B: Treasurer & Auditor -> Financial Transparency Table + Upload Shortcut -->
@@ -906,7 +819,7 @@ onMounted(() => {
                         <section class="card-panel animate-fade-in delay-2" aria-labelledby="transparency-table-heading">
                             <div class="panel-header">
                                 <div class="panel-title-group">
-                                    <h2 id="transparency-table-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">Financial Transparency</h2>
+                                    <h2 id="transparency-table-heading" class="panel-title">Financial Transparency</h2>
                                     <span class="panel-count-badge" title="Total financial records">{{ financialRecords.length }}</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 10px;">
@@ -948,7 +861,6 @@ onMounted(() => {
                                                         type="button"
                                                         class="table-article-btn"
                                                         :title="rec.title"
-                                                        style="font-family: 'Playfair Display', Georgia, serif !important; text-align: left !important; font-size: 0.85rem !important; padding: 0 !important; margin: 0 !important; color: #101828 !important; border: none; background: none; cursor: pointer; text-decoration: none; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important; flex: 1; min-width: 0;"
                                                         @click="openRecordPreview(rec)"
                                                     >
                                                         {{ rec.title }}
@@ -1012,7 +924,7 @@ onMounted(() => {
                         <section class="card-panel animate-fade-in delay-2" aria-labelledby="my-articles-heading">
                             <div class="panel-header">
                                 <div class="panel-title-group">
-                                    <h2 id="my-articles-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">My Recent Articles</h2>
+                                    <h2 id="my-articles-heading" class="panel-title">My Recent Articles</h2>
                                     <span class="panel-count-badge" title="Total articles submitted">{{ myRecentArticles.length }}</span>
                                 </div>
                                 <router-link
@@ -1065,7 +977,7 @@ onMounted(() => {
 
                                 <div v-if="!isLoading && myRecentArticles.length === 0" class="activity-empty-state-mini" style="padding: 24px 0;">
                                     <i class="fa-regular fa-folder-open"></i>
-                                    <h4 style="font-family: 'Playfair Display', Georgia, serif !important;">No articles yet</h4>
+                                    <h4>No articles yet</h4>
                                     <p>Articles you author and submit will appear here with their review status.</p>
                                 </div>
                             </div>
@@ -1077,7 +989,7 @@ onMounted(() => {
                         <section class="card-panel animate-fade-in delay-2" aria-labelledby="my-articles-heading">
                             <div class="panel-header">
                                 <div class="panel-title-group">
-                                    <h2 id="my-articles-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">My Recent Articles</h2>
+                                    <h2 id="my-articles-heading" class="panel-title">My Recent Articles</h2>
                                     <span class="panel-count-badge" title="Total articles submitted">{{ myRecentArticles.length }}</span>
                                 </div>
                                 <router-link
@@ -1130,7 +1042,7 @@ onMounted(() => {
 
                                 <div v-if="!isLoading && myRecentArticles.length === 0" class="activity-empty-state-mini" style="padding: 24px 0;">
                                     <i class="fa-regular fa-folder-open"></i>
-                                    <h4 style="font-family: 'Playfair Display', Georgia, serif !important;">No articles yet</h4>
+                                    <h4>No articles yet</h4>
                                     <p>Articles you author and submit will appear here with their review status.</p>
                                 </div>
                             </div>
@@ -1140,7 +1052,7 @@ onMounted(() => {
                     <!-- Section 2: Activity Log (Top 5 Recent with View All) -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="activity-log-heading">
                         <div class="panel-header">
-                            <h2 id="activity-log-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="activity-log-heading" class="panel-title">
                                 Activity Log
                             </h2>
                             <router-link to="/executive/activity-logs" class="panel-action-link">View all &rarr;</router-link>
@@ -1163,14 +1075,13 @@ onMounted(() => {
                                             <strong class="causer-name-token" style="color: #101828; font-weight: 600; margin-right: 4px;">{{ getStatement(act).causer }}</strong>
                                             <span>{{ getStatement(act).beforeSubject }}</span>
                                             <template v-if="getStatement(act).subjectName">
-                                                <em style="font-family: 'Playfair Display', Georgia, serif !important; font-style: normal; font-weight: 600; color: #101828; margin: 0 4px;">
+                                                <em>
                                                     "{{ getStatement(act).subjectName }}"
                                                 </em>
                                             </template>
                                             <span v-if="getStatement(act).afterSubject" :style="{ marginLeft: getStatement(act).subjectName ? '0px' : '4px' }">
                                                 {{ getStatement(act).afterSubject }}
                                             </span>
-                                            <span style="color: #667085; font-size: 0.75rem; margin-left: 4px;">{{ getTimestampText(act) }}.</span>
                                         </p>
                                         <div class="activity-meta-subrow" style="font-size: 0.72rem; color: #98a2b3; margin-top: 3px; display: flex; align-items: center; gap: 6px;">
                                             <span style="font-weight: 500; color: #475467;">{{ getCauserRole(act) }}</span>
@@ -1183,7 +1094,7 @@ onMounted(() => {
                             </div>
                             <div v-if="!isLoading && recentActivities.length === 0" class="activity-empty-state-mini">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
-                                <h4 style="font-family: 'Playfair Display', Georgia, serif !important;">No activity logs recorded</h4>
+                                <h4>No activity logs recorded</h4>
                                 <p>Editorial and system activities will appear here as they occur.</p>
                             </div>
                         </div>
@@ -1195,7 +1106,7 @@ onMounted(() => {
                     <!-- Section 1: Most Viewed Articles -->
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="most-viewed-heading">
                         <div class="panel-header">
-                            <h2 id="most-viewed-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">Most Viewed Articles</h2>
+                            <h2 id="most-viewed-heading" class="panel-title">Most Viewed Articles</h2>
                             <span class="panel-badge">{{ currentMonthName }}</span>
                         </div>
                         <div class="ranked-list">
@@ -1207,12 +1118,11 @@ onMounted(() => {
                             >
                                 <span class="rank-number" :class="{ 'top-rank': idx === 0 }">{{ idx + 1 }}</span>
                                 <div class="ranked-content">
-                                    <div class="ranked-category-tag">{{ art.category }}</div>
+                                    <div class="ranked-category-tag">{{ formatCategoryDisplay(art.category) }}</div>
                                     <button
                                         type="button"
                                         class="ranked-title-btn"
                                         :title="art.title"
-                                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                                         @click.stop="openArticleViewer(art)"
                                     >
                                         {{ art.title }}
@@ -1243,8 +1153,8 @@ onMounted(() => {
                     <!-- Section 2: Top Performing Journalists (Leaderboard) -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="top-journalists-heading">
                         <div class="panel-header">
-                            <h2 id="top-journalists-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
-                                Top Performing Journalists
+                            <h2 id="top-journalists-heading" class="panel-title">
+                                Top Journalists
                             </h2>
                             <span class="panel-badge">Leaderboard</span>
                         </div>
@@ -1252,8 +1162,8 @@ onMounted(() => {
                             <table class="data-table journalists-table" style="width: 100% !important; table-layout: fixed !important;">
                                 <thead>
                                     <tr>
-                                        <th class="col-author text-left" style="width: 58% !important; text-align: left !important; white-space: normal !important; word-break: break-word !important;">Author</th>
-                                        <th class="col-article-count text-center" style="width: 42% !important; min-width: 80px !important; text-align: center !important; white-space: normal !important; word-break: break-word !important; line-height: 1.2 !important;">Article Count</th>
+                                        <th class="col-author text-left" style="width: 72% !important; text-align: left !important;">Author</th>
+                                        <th class="col-article-count text-center" style="width: 28% !important; min-width: 72px !important; text-align: center !important;">Articles</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">
@@ -1309,10 +1219,10 @@ onMounted(() => {
                 </div>
 
                 <div class="viewer-modal-body">
-                    <h1 id="viewer-title" class="viewer-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                    <h1 id="viewer-title" class="viewer-title">
                         {{ activeArticle.title }}
                     </h1>
-                    
+
                     <div class="viewer-byline-row">
                         <div class="viewer-author-avatar">
                             <img
@@ -1347,11 +1257,11 @@ onMounted(() => {
         <!-- ====================================================================== -->
         <!-- MODAL 2: In-place Manuscript Review / Edit Modal                       -->
         <!-- ====================================================================== -->
-        <div 
-            v-if="isManuscriptModalOpen && activeManuscript" 
+        <div
+            v-if="isManuscriptModalOpen && activeManuscript"
             id="manuscript-modal"
-            class="modal-overlay" 
-            role="dialog" 
+            class="modal-overlay"
+            role="dialog"
             aria-modal="true"
             aria-labelledby="modal-headline"
             @click.self="closeManuscriptModal"
@@ -1365,11 +1275,11 @@ onMounted(() => {
                         <span id="modal-date" class="review-box-date">{{ activeManuscript.date || 'Today' }}</span>
                     </div>
                     <div class="manuscript-header-right">
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             id="close-manuscript-btn"
-                            class="viewer-close-btn" 
-                            aria-label="Close manuscript reader" 
+                            class="viewer-close-btn"
+                            aria-label="Close manuscript reader"
                             @click="closeManuscriptModal"
                         >
                             <i class="fa-solid fa-xmark"></i>
@@ -1387,7 +1297,6 @@ onMounted(() => {
                         spellcheck="true"
                         role="textbox"
                         aria-multiline="true"
-                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                         @keydown="onDashHeadlineKeydown"
                     ></h2>
 
@@ -1541,7 +1450,7 @@ onMounted(() => {
                 <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eaecf0; background: #ffffff;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-comment-dots" style="color: #5c0a18; font-size: 1.1rem;"></i>
-                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; ">
                             Revision Remarks
                         </h3>
                     </div>
@@ -1551,7 +1460,7 @@ onMounted(() => {
                 </div>
                 <div class="modal-body" style="padding: 20px; background: #ffffff;">
                     <div style="margin-bottom: 14px;">
-                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; ">
                             {{ activeRemarksArticle.title }}
                         </h4>
                         <div style="font-size: 0.8rem; color: #475467;">
@@ -1595,7 +1504,7 @@ onMounted(() => {
         <div v-if="showUploadModal" class="modal-overlay" @click.self="closeUploadModal">
             <div class="modal-card upload-modal-card">
                 <div class="upload-modal-header">
-                    <h3 class="upload-modal-title" style="font-family: 'Playfair Display', Georgia, serif !important;">Upload Financial Record</h3>
+                    <h3 class="upload-modal-title">Upload Financial Record</h3>
                     <button type="button" class="viewer-close-btn" @click="closeUploadModal" aria-label="Close modal">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
@@ -1611,12 +1520,12 @@ onMounted(() => {
                         <label class="field-label" for="dash-record-title-input">
                             Record Title <span class="required-dot">*</span>
                         </label>
-                        <input 
+                        <input
                             id="dash-record-title-input"
-                            v-model="uploadTitle" 
-                            type="text" 
-                            class="field-input" 
-                            placeholder="e.g. FY 2026-2027 1st Sem Liquidation Report" 
+                            v-model="uploadTitle"
+                            type="text"
+                            class="field-input"
+                            placeholder="e.g. FY 2026-2027 1st Sem Liquidation Report"
                             maxlength="255"
                         />
                     </div>
@@ -1626,19 +1535,19 @@ onMounted(() => {
                             Financial Document / Receipt <span class="required-dot">*</span>
                         </label>
 
-                        <div 
+                        <div
                             v-if="!selectedFile"
-                            class="file-dropzone" 
+                            class="file-dropzone"
                             :class="{ 'drag-active': isDragging }"
                             @dragover.prevent="isDragging = true"
                             @dragleave.prevent="isDragging = false"
                             @drop.prevent="handleDrop"
                             @click="fileInputRef && fileInputRef.click()"
                         >
-                            <input 
+                            <input
                                 ref="fileInputRef"
-                                type="file" 
-                                class="hidden-file-input" 
+                                type="file"
+                                class="hidden-file-input"
                                 accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.webp"
                                 @change="handleFileInput"
                             />
@@ -1655,7 +1564,7 @@ onMounted(() => {
 
                         <div v-else class="selected-file-card">
                             <div class="selected-file-left">
-                                <div 
+                                <div
                                     class="doc-icon-badge"
                                     :class="{
                                         'doc-icon-pdf': getFileCategory(selectedFile.name) === 'pdf',
@@ -1671,9 +1580,9 @@ onMounted(() => {
                                     <span class="selected-file-size">{{ formatBytes(selectedFile.size) }}</span>
                                 </div>
                             </div>
-                            <button 
-                                type="button" 
-                                class="btn-remove-selected-file" 
+                            <button
+                                type="button"
+                                class="btn-remove-selected-file"
                                 title="Remove file"
                                 @click="removeSelectedFile"
                             >
@@ -1716,11 +1625,11 @@ onMounted(() => {
                         <span class="viewer-date">{{ activeRecord.formatted_date }}</span>
                     </div>
                     <div class="viewer-header-right">
-                        <a 
-                            :href="activeRecord.file_url" 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            class="btn-secondary-white" 
+                        <a
+                            :href="activeRecord.file_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn-secondary-white"
                             style="padding: 6px 12px; font-size: 0.82rem;"
                         >
                             <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -1734,7 +1643,7 @@ onMounted(() => {
 
                 <div class="preview-modal-body">
                     <div class="preview-info-strip">
-                        <h2 class="preview-title" style="font-family: 'Playfair Display', Georgia, serif !important;">{{ activeRecord.title }}</h2>
+                        <h2 class="preview-title">{{ activeRecord.title }}</h2>
                         <div class="preview-uploader-subline">
                             <span>Uploaded by <strong>{{ activeRecord.uploader?.name || 'Officer' }}</strong></span>
                             <span class="uploader-role-badge">{{ activeRecord.uploader?.role || 'Auditor' }}</span>

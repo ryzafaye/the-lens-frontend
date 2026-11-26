@@ -8,6 +8,7 @@ import WriterLayout from '../layouts/WriterLayout.vue';
 import MpcLayout from '../layouts/MpcLayout.vue';
 import MediaLayout from '../layouts/MediaLayout.vue';
 import CartoonistLayout from '../layouts/CartoonistLayout.vue';
+import { formatCategoryDisplay } from '../utils/categoryFormat.js';
 import {
     getSectionHeadArticles,
     deleteSectionHeadDraft,
@@ -541,7 +542,7 @@ onMounted(() => {
                 >
                     <div class="article-card-header">
                         <div class="article-card-meta">
-                            <span class="article-card-category">{{ item.category || 'General' }}</span>
+                            <span class="article-card-category">{{ formatCategoryDisplay(item.category) }}</span>
                             <span class="meta-dot">&bull;</span>
                             <span class="article-card-date">
                                 <i class="fa-regular fa-calendar"></i> {{ item.date }}
@@ -658,7 +659,7 @@ onMounted(() => {
                 <div class="viewer-modal-header">
                     <div class="viewer-meta-row">
                         <span id="viewer-category" class="viewer-category-tag">
-                            {{ activeArticle.category || 'General' }}
+                            {{ formatCategoryDisplay(activeArticle.category) }}
                         </span>
                         <span class="viewer-dot">&bull;</span>
                         <span id="viewer-date" class="viewer-date">{{ activeArticle.date }}</span>
@@ -751,7 +752,7 @@ onMounted(() => {
                     </button>
                 </div>
                 <div class="remarks-modal-body" style="padding: 24px !important; overflow-y: auto !important; flex: 1 !important;">
-                    <p style="font-size: 1.05rem !important; font-weight: 700 !important; color: #101828 !important; margin: 0 0 14px 0 !important; line-height: 1.4 !important; font-family: 'Playfair Display', Georgia, serif !important;">
+                    <p style="font-size: 1.05rem !important; font-weight: 700 !important; color: #101828 !important; margin: 0 0 14px 0 !important; line-height: 1.4 !important; ">
                         {{ remarksArticle.title }}
                     </p>
                     <div class="remarks-content-box" style="background-color: #fff1f2 !important; border: 1px solid #fecdd3 !important; border-radius: 8px !important; padding: 16px !important;">

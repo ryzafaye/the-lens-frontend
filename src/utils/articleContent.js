@@ -19,6 +19,14 @@ export const SANITIZE_CONFIG = {
     ALLOW_DATA_ATTR: false,
 };
 
+function sanitizeWithDomPurify(html, config = SANITIZE_CONFIG) {
+    if (typeof DOMPurify?.sanitize === 'function') {
+        const result = DOMPurify.sanitize(html, config);
+        return typeof result === 'string' ? result : String(result);
+    }
+    return html;
+}
+
 export function decodeCorruptedHtmlEntities(text) {
     if (!text || typeof text !== 'string') return '';
     let decoded = text;
@@ -96,25 +104,45 @@ export function formatCleanArticleContent(rawContent) {
     const hasHtmlTags = /<\/?(?:div|p|br|h[1-6]|blockquote|ul|ol|li|strong|b|em|i|u|s|del|strike|sub|sup|a|hr)[^>]*>/i.test(content);
 
     if (hasHtmlTags) {
-        // Clean leading and trailing empty lines
+        // Convert any <div><br></div> spacers into <p><br></p> and convert bare text chunks split by \n into <p>
+        content = content
+            .replace(/<div[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\u00A0|\s)*<\/div>/gi, '<p><br></p>')
+            .replace(/<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\u00A0|\s)*<\/p>/gi, '<p><br></p>');
+
+        // Handle legacy mixed HTML + bare newline paragraphs (from Article::cleanArticleBodyText)
+        content = content.replace(/([^>\n])\n{2,}([^<\n])/g, '$1<p><br></p>$2');
+        content = content.replace(/(<\/(?:div|p|h[1-6]|blockquote|ul|ol)>)\n{2,}/gi, '$1<p><br></p>');
+        content = content.replace(/\n{2,}(<(?:div|p|h[1-6]|blockquote|ul|ol)\b)/gi, '<p><br></p>$1');
+
+        // Clean leading and trailing empty lines only (preserve internal paragraph spacing)
         content = content
             .replace(/^(?:\s*<(?:div|p)[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>|<br\s*\/?>)+/gi, '')
             .replace(/(?:\s*<(?:div|p)[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>|<br\s*\/?>)+$/gi, '');
 
-        const sanitized = DOMPurify.sanitize(content, SANITIZE_CONFIG);
-        return (typeof sanitized === 'string' ? sanitized : String(sanitized)).trim();
+        return sanitizeWithDomPurify(content, SANITIZE_CONFIG).trim();
     }
 
-    // Plain-text fallback: split by lines so single or double returns preserve clean paragraph spacing
+    // Plain-text fallback: preserve paragraph breaks (\n\n) cleanly
     const lines = content.split(/\r?\n/);
-    return lines.map(line => {
+    const htmlBlocks = [];
+    let pendingBlank = false;
+    for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed) return '';
-        if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
-            return `<div class="article-bullet-item">${escapeHTML(trimmed.replace(/^[•\-]\s*/, ''))}</div>`;
+        if (!trimmed) {
+            if (htmlBlocks.length > 0) pendingBlank = true;
+            continue;
         }
-        return `<p>${escapeHTML(trimmed)}</p>`;
-    }).filter(Boolean).join('');
+        if (pendingBlank) {
+            htmlBlocks.push('<p><br></p>');
+            pendingBlank = false;
+        }
+        if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+            htmlBlocks.push(`<div class="article-bullet-item">${escapeHTML(trimmed.replace(/^[•\-]\s*/, ''))}</div>`);
+        } else {
+            htmlBlocks.push(`<p>${escapeHTML(trimmed)}</p>`);
+        }
+    }
+    return htmlBlocks.join('');
 }
 
 /**
@@ -178,9 +206,28 @@ export function prepareContentForSaving(plainText) {
 }
 
 /**
+ * Formats stored draft/article content for loading back into the rich text editor,
+ * preserving all formatting tags and visible paragraph spacings.
+ */
+export function formatContentForEditor(rawContent) {
+    if (!rawContent || typeof rawContent !== 'string') return '';
+    let html = formatCleanArticleContent(rawContent);
+    // Wrap any loose plain-text segments outside block tags into <p> for clean block editing
+    if (html && !/^\s*<(?:p|div|h[1-6]|blockquote|ul|ol)/i.test(html)) {
+        const lines = html.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (lines.length) {
+            html = lines.map(l => (/^<(?:p|div|h[1-6]|blockquote|ul|ol)/i.test(l) ? l : `<p>${l}</p>`)).join('');
+        }
+    }
+    // Collapse multiple consecutive blank spacers to one <p><br></p>
+    html = html.replace(/(?:<p><br><\/p>\s*){2,}/gi, '<p><br></p>');
+    return html;
+}
+
+/**
  * Sanitizes and normalizes HTML from the rich text editor before sending to backend.
  * Preserves safe formatting tags (bold, italic, headings, quotes, links, strikethrough, alignments, indentations, lists <ul>, <ol>, <li>)
- * and uses DOMPurify to eliminate XSS, stripped tags, and broken attributes.
+ * and internal <p><br></p> paragraph spacings while eliminating XSS and broken attributes.
  */
 export function sanitizeRichArticleHtml(rawHtml) {
     if (!rawHtml || typeof rawHtml !== 'string') return '';
@@ -192,10 +239,6 @@ export function sanitizeRichArticleHtml(rawHtml) {
         .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
         .replace(/href\s*=\s*["']\s*javascript:[^"']*["']/gi, 'href="#"');
 
-    // Remove empty <div><br></div>, <p><br></p>, and raw <br> empty lines completely
-    html = html.replace(/<(?:div|p)[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>/gi, '');
-    html = html.replace(/<div[^>]*><br\s*\/?>/gi, '');
-
     // Normalize align="..." to style="text-align: ..."
     html = html.replace(/\s*align\s*=\s*["']?(center|right|justify|left)["']?/gi, (match, align) => {
         return ` style="text-align: ${align.toLowerCase()};"`;
@@ -206,37 +249,57 @@ export function sanitizeRichArticleHtml(rawHtml) {
         return sanitizeInlineStyle(styleVal);
     });
 
-    // Convert any <div> wrapper to semantic <p>
-    html = html.replace(/<div(\s+[^>]*)?>(.*?)<\/div>/gis, (match, attrs, inner) => {
-        const trimmedInner = inner.trim();
-        if (!trimmedInner || /^(?:<br\s*\/?>|\s*)+$/i.test(trimmedInner)) {
-            return '';
+    // Wrap Chromium leading bare text before first block tag into <p>
+    const firstBlockMatch = html.match(/^([\s\S]*?)(<(?:p|div|h[1-6]|blockquote|ul|ol|hr)\b[^>]*>)/i);
+    if (firstBlockMatch && firstBlockMatch[1].trim()) {
+        const leadingText = firstBlockMatch[1].replace(/<br\s*\/?>\s*$/i, '').trim();
+        if (leadingText) {
+            html = `<p>${leadingText}</p>` + html.slice(firstBlockMatch[1].length);
+        } else {
+            html = html.slice(firstBlockMatch[1].length);
         }
-        return `<p${attrs ? ' ' + attrs.trim() : ''}>${trimmedInner}</p>`;
-    });
+    }
 
-    // Strip any residual div, br, code, pre tags
-    html = html.replace(/<\/?(?:div|br|code|pre)\b[^>]*>/gi, '');
-    html = html.replace(/&lt;\/?(?:div|br|code|pre)\b[^&gt;]*&gt;/gi, '');
+    // Remove trailing <br> inside non-empty blocks
+    html = html.replace(/([\S>])\s*<br\s*\/?>\s*(<\/(?:div|p|li|h[1-6]|blockquote)>)/gi, '$1$2');
 
-    // Strip empty tags
-    html = html.replace(/<(?:p|h[1-6]|blockquote)[^>]*>\s*<\/(?:p|h[1-6]|blockquote)>/gi, '');
+    // Convert <div> wrappers to semantic <p>, preserving empty <div><br></div> spacers as <p><br></p>
+    let prevHtml = '';
+    while (html !== prevHtml) {
+        prevHtml = html;
+        html = html.replace(/<div(\s+[^>]*)?>([\s\S]*?)<\/div>/gis, (match, attrs, inner) => {
+            const trimmedInner = inner.trim();
+            if (!trimmedInner || /^(?:<br\s*\/?>|&nbsp;|\u00A0|\s)+$/i.test(trimmedInner)) {
+                return '<p><br></p>';
+            }
+            return `<p${attrs ? ' ' + attrs.trim() : ''}>${trimmedInner}</p>`;
+        });
+    }
 
-    // Clean redundant empty lines at beginning or end
+    // Strip any residual div, code, pre tags
+    html = html.replace(/<\/?(?:div|code|pre)\b[^>]*>/gi, '');
+    html = html.replace(/&lt;\/?(?:div|code|pre)\b[^&gt;]*&gt;/gi, '');
+
+    // Normalize empty <p> spacers and remove empty headings/blockquotes
     html = html
-        .replace(/^(?:\s*<p[^>]*>\s*<\/p>)+/gi, '')
-        .replace(/(?:\s*<p[^>]*>\s*<\/p>)+$/gi, '');
+        .replace(/<(?:h[1-6]|blockquote)[^>]*>\s*(?:<br\s*\/?>|\s)*<\/(?:h[1-6]|blockquote)>/gi, '')
+        .replace(/<p[^>]*>\s*(?:<br\s*\/?>|&nbsp;|\u00A0|\s)*<\/p>/gi, '<p><br></p>')
+        .replace(/(?:<p><br><\/p>\s*){2,}/gi, '<p><br></p>');
 
-    const sanitized = DOMPurify.sanitize(html, {
+    // Clean redundant empty lines at beginning or end only
+    html = html
+        .replace(/^(?:\s*<p><br><\/p>|\s*<br\s*\/?>)+/gi, '')
+        .replace(/(?:\s*<p><br><\/p>|\s*<br\s*\/?>)+$/gi, '');
+
+    return sanitizeWithDomPurify(html, {
         ALLOWED_TAGS: [
-            'p', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote',
+            'p', 'br', 'ul', 'ol', 'li', 'h2', 'h3', 'h4', 'blockquote',
             'strong', 'b', 'em', 'i', 'u', 's', 'del', 'strike',
             'sub', 'sup', 'a', 'hr'
         ],
         ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'style'],
         ALLOW_DATA_ATTR: false
-    });
-    return (typeof sanitized === 'string' ? sanitized : String(sanitized)).trim();
+    }).trim();
 }
 
 /**

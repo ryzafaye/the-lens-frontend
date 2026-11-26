@@ -28,7 +28,7 @@
 }
 
 .activity-page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.85rem;
     font-weight: 700;
     color: #101828;
@@ -310,7 +310,7 @@
 
 /* Subject Name in Quotes, Same color font with subtle quotation marks */
 .subject-name-token {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-weight: 700;
     color: #101828;
 }
@@ -370,7 +370,7 @@
 }
 
 .empty-state-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.30rem;
     font-weight: 700;
     color: #101828;

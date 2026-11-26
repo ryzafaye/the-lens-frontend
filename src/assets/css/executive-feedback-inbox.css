@@ -30,7 +30,7 @@ html {
 
 .feedback-page-title,
 .feedback-title-wrap h1 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.85rem;
     font-weight: 700;
     color: #101828;
@@ -81,7 +81,7 @@ html {
 }
 
 .feedback-empty-heading {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.35rem;
     font-weight: 700;
     color: #101828;
@@ -511,7 +511,7 @@ html {
 }
 
 .detail-subject-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.45rem;
     font-weight: 700;
     color: #101828;

@@ -22,7 +22,7 @@
 
 .profile-title-wrap h1,
 .profile-title-wrap .page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.85rem;
     font-weight: 700;
     color: #101828;

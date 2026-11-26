@@ -132,7 +132,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: clamp(30px, 4vw, 42px);
     font-weight: 800;
     letter-spacing: 0.02em;
@@ -165,7 +165,7 @@
 .author-dossier-name {
     margin: 0 0 10px;
     color: var(--lens-ink);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: clamp(28px, 3.5vw, 40px);
     font-weight: 800;
     line-height: 1.15;
@@ -217,7 +217,7 @@
 }
 
 .author-article-count-number {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: clamp(30px, 3.5vw, 42px);
     font-weight: 800;
     color: var(--lens-maroon);
@@ -260,7 +260,7 @@
 
 .byline-main-title {
     margin: 0;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: clamp(18px, 2.4vw, 18px);
     font-weight: 700;
     color: var(--lens-ink);
@@ -393,7 +393,7 @@
 /* Title — STRICT USER INVARIANT: Maroon font + Maroon underline strictly on hover */
 .author-story-title {
     margin: 0 0 10px;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: 19px;
     font-weight: 700;
     line-height: 1.35;
@@ -497,7 +497,7 @@
 }
 
 .author-empty-title {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: 22px;
     font-weight: 800;
     color: var(--lens-ink);

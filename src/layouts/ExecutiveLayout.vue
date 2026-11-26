@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { logout } from '../services/api.js';
 import { currentUser, setAuthUser, clearAuthUser, useAuthStore } from '../stores/auth.js';
+import { useSidebarPendingCounts } from '../composables/useSidebarPendingCounts.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../utils/image.js';
 import LogoutModal from '../components/LogoutModal.vue';
 const logoImg = '/images/logo.jpg';
@@ -22,6 +23,8 @@ const isPresOrVp = computed(() => {
     const norm = String(roleName).toLowerCase().trim();
     return norm.includes('president') || norm.includes('vp');
 });
+
+const { pendingCounts } = useSidebarPendingCounts('executive', isPresOrVp);
 
 // RBAC: Only Auditor and Treasurer roles can access the Transparency module
 const canViewTransparency = computed(() => {
@@ -213,6 +216,14 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Review Article</span>
+                        <span
+                            v-if="pendingCounts.reviewArticles !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.reviewArticles === 0 }"
+                            :title="`${pendingCounts.reviewArticles} pending article approval${pendingCounts.reviewArticles === 1 ? '' : 's'}`"
+                        >
+                            {{ pendingCounts.reviewArticles > 99 ? '99+' : pendingCounts.reviewArticles }}
+                        </span>
                     </router-link>
 
                     <router-link
@@ -417,6 +428,13 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Review Article</span>
+                        <span
+                            v-if="pendingCounts.reviewArticles !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.reviewArticles === 0 }"
+                        >
+                            {{ pendingCounts.reviewArticles > 99 ? '99+' : pendingCounts.reviewArticles }}
+                        </span>
                     </router-link>
 
                     <router-link

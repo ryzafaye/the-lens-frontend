@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import EicLayout from '../layouts/EicLayout.vue';
 import ExecutiveLayout from '../layouts/ExecutiveLayout.vue';
 import SectionHeadLayout from '../layouts/SectionHeadLayout.vue';
+import { formatCategoryDisplay } from '../utils/categoryFormat.js';
 import {
     getSectionHeadReviewArticles,
     updateSectionHeadReviewArticle,
@@ -756,7 +757,7 @@ onMounted(() => {
                 <div style="width: 54px; height: 54px; border-radius: 50%; background: #fef3f2; color: #b42318; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.4rem;">
                     <i class="fa-solid fa-lock"></i>
                 </div>
-                <h2 style="font-family: 'Playfair Display', Georgia, serif; font-size: 1.5rem; font-weight: 700; color: #101828; margin: 0 0 10px;">
+                <h2>
                     Restricted Review Access
                 </h2>
                 <p style="font-size: 0.95rem; color: #667085; line-height: 1.6; margin: 0 0 24px;">
@@ -873,7 +874,7 @@ onMounted(() => {
                         <!-- Left Stack: Meta Line, Bold Article Title, Author with Pen Nib Icon -->
                         <div class="review-box-content">
                             <div class="review-box-meta">
-                                <span class="review-box-category">{{ item.category }}</span>
+                                <span class="review-box-category">{{ formatCategoryDisplay(item.category) }}</span>
                                 <span class="review-box-date">
                                     <i class="fa-regular fa-calendar" aria-hidden="true"></i>
                                     {{ item.date }}
@@ -883,7 +884,6 @@ onMounted(() => {
                             <button
                                 type="button"
                                 class="review-box-title"
-                                style="font-family: 'Playfair Display', Georgia, serif !important;"
                                 @click="openManuscriptModal(item)"
                                 :title="item.title"
                             >
@@ -938,7 +938,7 @@ onMounted(() => {
                     <div class="empty-queue-icon-wrapper">
                         <i class="fa-solid fa-file-circle-check"></i>
                     </div>
-                    <h3 class="empty-queue-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                    <h3 class="empty-queue-title">
                         Review Queue is Clear
                     </h3>
                     <p class="empty-queue-description" style="text-align: center !important;">
@@ -970,7 +970,7 @@ onMounted(() => {
                         >
                             <div class="review-box-content">
                                 <div class="review-box-meta">
-                                    <span class="review-box-category">{{ item.category }}</span>
+                                    <span class="review-box-category">{{ formatCategoryDisplay(item.category) }}</span>
                                     <span class="meta-dot">&bull;</span>
                                     <span
                                         class="btn-show-remarks"
@@ -990,7 +990,6 @@ onMounted(() => {
                                 <button
                                     type="button"
                                     class="review-box-title"
-                                    style="font-family: 'Playfair Display', Georgia, serif !important;"
                                     @click="openManuscriptModal(item)"
                                     :title="item.title"
                                 >
@@ -1044,7 +1043,7 @@ onMounted(() => {
                         <div class="empty-queue-icon-wrapper">
                             <i class="fa-solid fa-rotate-left"></i>
                         </div>
-                        <h3 class="empty-queue-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                        <h3 class="empty-queue-title">
                             No Articles For Revision
                         </h3>
                         <p class="empty-queue-description">
@@ -1081,7 +1080,7 @@ onMounted(() => {
                 <!-- Modal Header -->
                 <div class="manuscript-header">
                     <div class="manuscript-header-left">
-                        <span id="modal-section" class="review-box-category">{{ activeManuscript.category }}</span>
+                        <span id="modal-section" class="review-box-category">{{ formatCategoryDisplay(activeManuscript.category) }}</span>
                         <span>&bull;</span>
                         <span id="modal-date" class="review-box-date">{{ activeManuscript.date }}</span>
                     </div>
@@ -1108,7 +1107,6 @@ onMounted(() => {
                         spellcheck="true"
                         role="textbox"
                         aria-multiline="true"
-                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                         @keydown="onHeadlineKeydown"
                     ></h2>
 

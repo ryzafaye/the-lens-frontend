@@ -94,7 +94,21 @@ apiClient.interceptors.request.use(async (config) => {
 
 // Intercept 419 (CSRF Token Mismatch) and automatically refresh token and retry
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        const method = (response.config?.method || 'get').toUpperCase();
+        const url = response.config?.url || '';
+        if (
+            typeof window !== 'undefined' &&
+            ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
+            !url.includes('/login') &&
+            !url.includes('/logout') &&
+            !url.includes('/ping')
+        ) {
+            clearApiCache();
+            window.dispatchEvent(new CustomEvent('sidebar-counts-refresh'));
+        }
+        return response;
+    },
     async (error) => {
         const originalRequest = error.config;
         if (

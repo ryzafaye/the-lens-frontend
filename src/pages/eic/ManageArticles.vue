@@ -765,7 +765,7 @@ onUnmounted(() => {
                             <option value="News">News</option>
                             <option value="Feature">Feature</option>
                             <option value="Opinion">Opinion</option>
-                            <option value="Science & Technology">Science & Technology</option>
+                            <option value="Science & Technology">SciTech</option>
                             <option value="Literature">Literature</option>
                         </select>
                     </div>

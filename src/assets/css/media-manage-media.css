@@ -69,7 +69,7 @@
 }
 
 .media-stat-number {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.85rem;
     font-weight: 700;
     color: var(--sidebar-maroon, #5c0a18);
@@ -601,7 +601,7 @@
 }
 
 .stat-card-figure {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 2.35rem;
     font-weight: 700;
     color: #0f172a;
@@ -627,7 +627,7 @@
 }
 
 .media-card-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.08rem;
     font-weight: 700;
     color: #0f172a;
@@ -783,7 +783,7 @@
 }
 
 .media-empty-state h3 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.25rem;
     color: #1e293b;
     margin-bottom: 6px;
@@ -1031,7 +1031,7 @@
 
 .archive-item h3 {
     margin: 0 0 6px 0;
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 16px;
     font-weight: 700;
     line-height: 1.35;

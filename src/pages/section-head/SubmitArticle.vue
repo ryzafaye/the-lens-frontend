@@ -7,7 +7,7 @@ import {
     storeSectionHeadArticle,
     deleteSectionHeadDraft,
 } from '../../services/api.js';
-import { cleanContentForEditing, formatCleanArticleContent, sanitizeRichArticleHtml, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
+import { cleanContentForEditing, formatContentForEditor, sanitizeRichArticleHtml, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-submit-article.css';
 
@@ -199,18 +199,20 @@ function clearForm() {
 }
 
 function loadDraftIntoEditor(draft) {
+    if (!draft) return;
+    const editorHtml = draft.content ? formatContentForEditor(draft.content) : '';
     articleId.value = draft.id;
     title.value = draft.title || '';
     categoryId.value = draft.category_id || '';
     excerpt.value = draft.excerpt || '';
-    editorContent.value = draft.content || '';
+    editorContent.value = editorHtml;
     initialBodyContent.value = draft.content || '';
     loadedArticleStatus.value = draft.status || '';
     if (editorRef.value) {
-        editorRef.value.innerHTML = draft.content ? formatCleanArticleContent(draft.content) : '';
+        editorRef.value.innerHTML = editorHtml;
     }
     switchTab('write');
-    showToast(`Loaded draft: "${draft.title}"`, 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // Delete Draft Modal
@@ -819,7 +821,6 @@ onMounted(() => {
                                     <button
                                         type="button"
                                         class="draft-box-title"
-                                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                                         @click="loadDraftIntoEditor(draft)"
                                         :title="draft.title"
                                     >

@@ -126,7 +126,7 @@
 
 .cover-page-title,
 .page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary, #101828);

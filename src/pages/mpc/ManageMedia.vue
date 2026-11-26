@@ -271,7 +271,7 @@ onMounted(() => {
                     <div style="width: 48px; height: 48px; border-radius: 50%; background: #fdf2f4; color: var(--sidebar-maroon, #5c0a18); display: inline-flex; align-items: center; justify-content: center; font-size: 1.25rem; margin-bottom: 14px;">
                         <i class="fa-solid fa-images"></i>
                     </div>
-                    <h3 style="font-family: var(--font-heading, 'Playfair Display', Georgia, serif); font-size: 1.15rem; font-weight: 700; color: #101828; margin: 0;">
+                    <h3 style="font-size: 1.15rem; font-weight: 700; color: #101828; margin: 0;">
                         No Media Items Found
                     </h3>
                     <p style="font-size: 0.85rem; color: #667085; margin-top: 6px;">There are no media submissions matching this view.</p>

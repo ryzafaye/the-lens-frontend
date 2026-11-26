@@ -32,7 +32,7 @@
 
     /* Typography */
     --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-heading: 'Playfair Display', Georgia, serif;
+    --font-heading: 'Merriweather', Georgia, serif;
 
     /* Dimensions */
     --sidebar-width: 280px;
@@ -637,7 +637,7 @@ body.dashboard-body {
 }
 
 .page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary, #101828);
@@ -776,7 +776,7 @@ body.dashboard-body {
 }
 
 .right-column-stack .panel-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 0.95rem;
     font-weight: 700;
 }
@@ -819,7 +819,7 @@ body.dashboard-body {
 }
 
 .panel-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 0.98rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -924,31 +924,31 @@ body.dashboard-body {
    4-COLUMN PENDING APPROVALS TABLE (Title, Category, Date, Action: Edit, Revision, Approve)
    Calibrated widths so the 3 action buttons fit without overflow or clipping
    ========================================================================== */
-.pending-approvals-table {
+.pending-approvals-table:not(.unified-pending-table) {
     width: 100% !important;
     min-width: 500px !important;
     table-layout: fixed !important;
     border-collapse: collapse;
 }
 
-.pending-approvals-table th,
-.pending-approvals-table td {
+.pending-approvals-table:not(.unified-pending-table) th,
+.pending-approvals-table:not(.unified-pending-table) td {
     vertical-align: middle;
 }
 
-.pending-approvals-table th {
+.pending-approvals-table:not(.unified-pending-table) th {
     text-align: center !important;
 }
 
 /* Col 1: Article Title & Author */
-.pending-approvals-table th.col-title,
-.pending-approvals-table th:first-child {
+.pending-approvals-table:not(.unified-pending-table) th.col-title,
+.pending-approvals-table:not(.unified-pending-table) th:first-child {
     width: 32% !important;
     text-align: center !important;
 }
 
-.pending-approvals-table td.col-title,
-.pending-approvals-table td:first-child {
+.pending-approvals-table:not(.unified-pending-table) td.col-title,
+.pending-approvals-table:not(.unified-pending-table) td:first-child {
     width: 32% !important;
     padding-left: 12px !important;
     padding-right: 6px !important;
@@ -956,16 +956,16 @@ body.dashboard-body {
 }
 
 /* Col 2: Category (ALWAYS Visible) */
-.pending-approvals-table th.col-category,
-.pending-approvals-table th:nth-child(2) {
+.pending-approvals-table:not(.unified-pending-table) th.col-category,
+.pending-approvals-table:not(.unified-pending-table) th:nth-child(2) {
     width: 14% !important;
     min-width: 75px !important;
     text-align: center !important;
     display: table-cell !important;
 }
 
-.pending-approvals-table td.col-category,
-.pending-approvals-table td:nth-child(2) {
+.pending-approvals-table:not(.unified-pending-table) td.col-category,
+.pending-approvals-table:not(.unified-pending-table) td:nth-child(2) {
     width: 14% !important;
     min-width: 75px !important;
     padding-left: 4px !important;
@@ -975,16 +975,16 @@ body.dashboard-body {
 }
 
 /* Col 3: Date */
-.pending-approvals-table th.col-date,
-.pending-approvals-table th:nth-child(3) {
+.pending-approvals-table:not(.unified-pending-table) th.col-date,
+.pending-approvals-table:not(.unified-pending-table) th:nth-child(3) {
     width: 12% !important;
     min-width: 65px !important;
     text-align: center !important;
     display: table-cell !important;
 }
 
-.pending-approvals-table td.col-date,
-.pending-approvals-table td:nth-child(3) {
+.pending-approvals-table:not(.unified-pending-table) td.col-date,
+.pending-approvals-table:not(.unified-pending-table) td:nth-child(3) {
     width: 12% !important;
     min-width: 65px !important;
     padding-left: 4px !important;
@@ -994,17 +994,17 @@ body.dashboard-body {
 }
 
 /* Col 4: Action (Edit, Revision, Approve) */
-.pending-approvals-table th.col-actions,
-.pending-approvals-table th:nth-child(4),
-.pending-approvals-table th:last-child {
+.pending-approvals-table:not(.unified-pending-table) th.col-actions,
+.pending-approvals-table:not(.unified-pending-table) th:nth-child(4),
+.pending-approvals-table:not(.unified-pending-table) th:last-child {
     width: 42% !important;
     min-width: 215px !important;
     text-align: center !important;
 }
 
-.pending-approvals-table td.col-actions,
-.pending-approvals-table td:nth-child(4),
-.pending-approvals-table td:last-child {
+.pending-approvals-table:not(.unified-pending-table) td.col-actions,
+.pending-approvals-table:not(.unified-pending-table) td:nth-child(4),
+.pending-approvals-table:not(.unified-pending-table) td:last-child {
     width: 42% !important;
     min-width: 215px !important;
     padding-left: 4px !important;
@@ -1185,7 +1185,7 @@ body.dashboard-body {
 
 .activity-text em {
     font-style: normal;
-    font-family: 'Playfair Display', Georgia, serif !important;
+    font-family: 'Merriweather', Georgia, serif !important;
     color: #101828;
     font-weight: 600;
 }
@@ -1296,7 +1296,7 @@ body.dashboard-body {
 
 .ranked-title,
 .ranked-title-btn {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 0.92rem;
     font-weight: 700;
     color: var(--text-primary);
@@ -1955,51 +1955,51 @@ body.dashboard-body {
         width: 100% !important;
     }
 
-    .pending-approvals-table {
+    .pending-approvals-table:not(.unified-pending-table) {
         min-width: 540px !important;
         width: 100% !important;
         table-layout: fixed !important;
     }
 
-    .pending-approvals-table th.col-title,
-    .pending-approvals-table th.col-category,
-    .pending-approvals-table th.col-date,
-    .pending-approvals-table th.col-actions {
+    .pending-approvals-table:not(.unified-pending-table) th.col-title,
+    .pending-approvals-table:not(.unified-pending-table) th.col-category,
+    .pending-approvals-table:not(.unified-pending-table) th.col-date,
+    .pending-approvals-table:not(.unified-pending-table) th.col-actions {
         text-align: center !important;
     }
 
-    .pending-approvals-table td.col-title {
+    .pending-approvals-table:not(.unified-pending-table) td.col-title {
         width: 33% !important;
         text-align: left !important;
     }
 
-    .pending-approvals-table th.col-category,
-    .pending-approvals-table td.col-category {
+    .pending-approvals-table:not(.unified-pending-table) th.col-category,
+    .pending-approvals-table:not(.unified-pending-table) td.col-category {
         display: table-cell !important;
         width: 15% !important;
     }
 
-    .pending-approvals-table td.col-category {
+    .pending-approvals-table:not(.unified-pending-table) td.col-category {
         text-align: center !important;
     }
 
-    .pending-approvals-table th.col-date,
-    .pending-approvals-table td.col-date {
+    .pending-approvals-table:not(.unified-pending-table) th.col-date,
+    .pending-approvals-table:not(.unified-pending-table) td.col-date {
         display: table-cell !important;
         width: 14% !important;
     }
 
-    .pending-approvals-table td.col-date {
+    .pending-approvals-table:not(.unified-pending-table) td.col-date {
         text-align: center !important;
     }
 
-    .pending-approvals-table th.col-actions,
-    .pending-approvals-table td.col-actions {
+    .pending-approvals-table:not(.unified-pending-table) th.col-actions,
+    .pending-approvals-table:not(.unified-pending-table) td.col-actions {
         width: 38% !important;
         min-width: 215px !important;
     }
 
-    .pending-approvals-table td.col-actions {
+    .pending-approvals-table:not(.unified-pending-table) td.col-actions {
         text-align: right !important;
     }
 
@@ -2244,7 +2244,7 @@ body.dashboard-body {
 }
 
 .logout-modal-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.18rem !important;
     font-weight: 700 !important;
     color: #101828 !important;
@@ -2718,7 +2718,7 @@ button.sidebar-footer-link.logout-btn:hover,
     text-align: left !important;
     display: block !important;
     width: 100% !important;
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
 }
 
 .table-article-author-row,
@@ -2749,50 +2749,50 @@ button.sidebar-footer-link.logout-btn:hover,
 
 /* Responsive Table Behavior for Pending Approvals */
 @media (max-width: 992px) {
-    .pending-approvals-table {
+    .pending-approvals-table:not(.unified-pending-table) {
         min-width: 520px !important;
     }
 }
 
 @media (max-width: 768px) {
-    .pending-approvals-table {
+    .pending-approvals-table:not(.unified-pending-table) {
         min-width: 540px !important;
     }
 
     /* Category is ALWAYS visible on Executive Dashboard */
-    .pending-approvals-table th.col-category,
-    .pending-approvals-table td.col-category {
+    .pending-approvals-table:not(.unified-pending-table) th.col-category,
+    .pending-approvals-table:not(.unified-pending-table) td.col-category {
         display: table-cell !important;
         width: 15% !important;
     }
 
-    .pending-approvals-table th.col-title,
-    .pending-approvals-table th:first-child,
-    .pending-approvals-table th.col-category,
-    .pending-approvals-table th.col-date,
-    .pending-approvals-table th.col-actions,
-    .pending-approvals-table th:last-child {
+    .pending-approvals-table:not(.unified-pending-table) th.col-title,
+    .pending-approvals-table:not(.unified-pending-table) th:first-child,
+    .pending-approvals-table:not(.unified-pending-table) th.col-category,
+    .pending-approvals-table:not(.unified-pending-table) th.col-date,
+    .pending-approvals-table:not(.unified-pending-table) th.col-actions,
+    .pending-approvals-table:not(.unified-pending-table) th:last-child {
         text-align: center !important;
     }
 
-    .pending-approvals-table td.col-title,
-    .pending-approvals-table td:first-child {
+    .pending-approvals-table:not(.unified-pending-table) td.col-title,
+    .pending-approvals-table:not(.unified-pending-table) td:first-child {
         width: 33% !important;
         padding-left: 10px !important;
         padding-right: 6px !important;
         text-align: left !important;
     }
 
-    .pending-approvals-table th.col-date,
-    .pending-approvals-table td.col-date {
+    .pending-approvals-table:not(.unified-pending-table) th.col-date,
+    .pending-approvals-table:not(.unified-pending-table) td.col-date {
         display: table-cell !important;
         width: 14% !important;
         padding-left: 4px !important;
         padding-right: 4px !important;
     }
 
-    .pending-approvals-table td.col-actions,
-    .pending-approvals-table td:last-child {
+    .pending-approvals-table:not(.unified-pending-table) td.col-actions,
+    .pending-approvals-table:not(.unified-pending-table) td:last-child {
         width: 42% !important;
         min-width: 215px !important;
         padding-right: 8px !important;
@@ -2800,7 +2800,7 @@ button.sidebar-footer-link.logout-btn:hover,
         text-align: right !important;
     }
 
-    .pending-approvals-table .table-actions-group {
+    .pending-approvals-table:not(.unified-pending-table) .table-actions-group {
         display: inline-flex !important;
         align-items: center !important;
         justify-content: flex-end !important;
@@ -2809,7 +2809,7 @@ button.sidebar-footer-link.logout-btn:hover,
         white-space: nowrap !important;
     }
 
-    .pending-approvals-table .btn-table-action {
+    .pending-approvals-table:not(.unified-pending-table) .btn-table-action {
         padding: 3px 5px !important;
         font-size: 0.68rem !important;
         height: 24px !important;
@@ -2818,7 +2818,7 @@ button.sidebar-footer-link.logout-btn:hover,
         white-space: nowrap !important;
     }
 
-    .pending-approvals-table .btn-table-action span {
+    .pending-approvals-table:not(.unified-pending-table) .btn-table-action span {
         display: inline !important;
     }
 }
@@ -3022,7 +3022,7 @@ button.sidebar-footer-link.logout-btn:hover,
 }
 
 .article-card-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.02rem;
     font-weight: 700;
     color: var(--text-primary, #101828);

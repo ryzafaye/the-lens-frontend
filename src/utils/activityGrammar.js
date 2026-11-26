@@ -74,6 +74,10 @@ export function formatActivityStatement(item) {
             beforeLower.includes('edited manuscript') ||
             beforeLower.includes('returned for revision the') ||
             beforeLower.includes('the article the article') ||
+            beforeLower.includes('cartoon the editorial cartoon') ||
+            beforeLower.includes('photo the photo') ||
+            beforeLower.includes('media the media') ||
+            beforeLower.includes('artwork the visual') ||
             rawBefore.includes('the Article') ||
             rawBefore.includes('the Editorial Item') ||
             rawBefore.includes('the Desk Record');
@@ -122,10 +126,23 @@ export function formatActivityStatement(item) {
             beforeSubject = 'approved the visual artwork';
         } else if (actionLower === 'submitted editorial cartoon') {
             beforeSubject = 'submitted the editorial cartoon';
+        } else if (actionLower === 'resubmitted editorial cartoon') {
+            beforeSubject = 'resubmitted the editorial cartoon';
         } else if (actionLower === 'submitted photo') {
             beforeSubject = 'submitted the photo';
+        } else if (actionLower === 'resubmitted photo') {
+            beforeSubject = 'resubmitted the photo';
         } else if (actionLower === 'submitted media' || actionLower === 'submitted illustration') {
             beforeSubject = `submitted ${typePhrase}`;
+        } else if (actionLower === 'resubmitted media' || actionLower === 'resubmitted illustration' || actionLower === 'resubmitted article' || actionLower === 'resubmitted') {
+            beforeSubject = `resubmitted ${typePhrase}`;
+        } else if (actionLower.startsWith('resubmitted ')) {
+            let noun = typePhrase;
+            if (actionLower.includes('cartoon')) noun = 'the editorial cartoon';
+            else if (actionLower.includes('photo')) noun = 'the photo';
+            else if (actionLower.includes('visual') || actionLower.includes('artwork')) noun = 'the visual artwork';
+            else if (actionLower.includes('media') || actionLower.includes('graphic')) noun = 'the media asset';
+            beforeSubject = `resubmitted ${noun}`;
         } else if (['emergency delete', 'emergency deleted', 'hard delete', 'hard deleted', 'permanently delete', 'permanently deleted'].includes(actionLower)) {
             beforeSubject = `permanently deleted ${typePhrase}`;
         } else if (['deleted', 'deleted article'].includes(actionLower)) {
@@ -147,12 +164,15 @@ export function formatActivityStatement(item) {
         } else if (['submitted', 'approved', 'published', 'unpublished', 'archived', 'restored'].includes(actionLower)) {
             beforeSubject = `${actionLower} ${typePhrase}`;
         } else {
-            // Fallback for custom or direct action strings
-            if (actionLower.endsWith(' for') || actionLower.endsWith(' to') || actionLower.endsWith(' of')) {
-                beforeSubject = `${actionRaw} ${typePhrase}`;
-            } else {
-                beforeSubject = `${actionRaw} ${typePhrase}`;
-            }
+            // Avoid duplicating the resource noun if actionRaw already contains it
+            const alreadyHasNoun =
+                actionLower.includes(lowerType) ||
+                actionLower.includes('editorial cartoon') ||
+                actionLower.includes('photo') ||
+                actionLower.includes('media asset') ||
+                actionLower.includes('visual artwork') ||
+                actionLower.includes('article');
+            beforeSubject = alreadyHasNoun ? actionRaw : `${actionRaw} ${typePhrase}`;
         }
     }
 

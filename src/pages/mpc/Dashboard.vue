@@ -13,6 +13,7 @@ import {
     formatPhilippineDateTime,
     formatPhilippineRelativeTime,
 } from '../../utils/activityGrammar.js';
+import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-dashboard.css';
@@ -374,7 +375,7 @@ onMounted(() => {
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="pending-release-heading">
                         <div class="panel-header">
                             <div class="panel-title-group" style="display: flex; align-items: center; gap: 8px;">
-                                <h2 id="pending-release-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                                <h2 id="pending-release-heading" class="panel-title">
                                     Pending Release
                                 </h2>
                                 <span class="panel-count-badge" :title="`Total ${metrics.pending ?? pendingArticles.length} articles awaiting release`">{{ formatNumber(metrics.pending ?? pendingArticles.length) }}</span>
@@ -417,7 +418,6 @@ onMounted(() => {
                                                     type="button"
                                                     class="table-article-btn"
                                                     :title="article.title"
-                                                    style="font-family: 'Playfair Display', Georgia, serif !important; text-align: left; display: block; width: 100%; padding: 0; margin: 0 0 4px 0; font-size: 0.95rem; font-weight: 600; line-height: 1.35; color: #101828; white-space: normal; word-break: break-word; overflow-wrap: break-word;"
                                                     @click="openArticleViewer(article)"
                                                 >
                                                     {{ article.title }}
@@ -434,12 +434,12 @@ onMounted(() => {
 
                                         <!-- Column 2: Category -->
                                         <td class="col-category" style="text-align: center;">
-                                            <span class="table-section-tag" :title="article.category">{{ formatCategory(article.category) }}</span>
+                                            <span class="table-section-tag" :title="article.category">{{ formatCategoryDisplay(article.category) }}</span>
                                         </td>
 
                                         <!-- Column 3: Date -->
                                         <td class="col-date" style="text-align: center;">
-                                            <span class="table-date" style="color: #667085; font-size: 0.82rem; white-space: normal; word-break: break-word;">{{ article.date || article.dateApproved }}</span>
+                                            <span class="table-date" style="color: #667085; font-size: 0.82rem; white-space: nowrap;">{{ article.date || article.dateApproved }}</span>
                                         </td>
 
                                         <!-- Column 4: Actions (Assign Cover and Publish) -->
@@ -478,7 +478,7 @@ onMounted(() => {
                     <!-- Section 2: Activity Log -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="activity-log-heading">
                         <div class="panel-header">
-                            <h2 id="activity-log-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="activity-log-heading" class="panel-title">
                                 Activity Log
                             </h2>
                             <router-link to="/mpc/activity-logs" class="panel-action-link">View all &rarr;</router-link>
@@ -501,14 +501,13 @@ onMounted(() => {
                                             <strong class="causer-name-token" style="color: #101828; font-weight: 600; margin-right: 4px;">{{ getStatement(act).causer }}</strong>
                                             <span>{{ getStatement(act).beforeSubject }}</span>
                                             <template v-if="getStatement(act).subjectName">
-                                                <em style="font-family: 'Playfair Display', Georgia, serif !important; font-style: normal; font-weight: 600; color: #101828; margin: 0 4px;">
+                                                <em>
                                                     "{{ getStatement(act).subjectName }}"
                                                 </em>
                                             </template>
                                             <span v-if="getStatement(act).afterSubject" :style="{ marginLeft: getStatement(act).subjectName ? '0px' : '4px' }">
                                                 {{ getStatement(act).afterSubject }}
                                             </span>
-                                            <span style="color: #667085; font-size: 0.75rem; margin-left: 4px;">{{ getTimestampText(act) }}.</span>
                                         </p>
                                         <div class="activity-meta-subrow" style="font-size: 0.72rem; color: #98a2b3; margin-top: 3px; display: flex; align-items: center; gap: 6px;">
                                             <span style="font-weight: 500; color: #475467;">{{ getCauserRole(act) }}</span>
@@ -521,7 +520,7 @@ onMounted(() => {
                             </div>
                             <div v-if="!isLoading && recentActivities.length === 0" class="activity-empty-state-mini" style="text-align: center; color: #667085; padding: 24px;">
                                 <i class="fa-solid fa-clock-rotate-left" style="font-size: 1.5rem; color: #98a2b3; margin-bottom: 8px;"></i>
-                                <h4 style="font-family: 'Playfair Display', Georgia, serif !important; margin: 4px 0; color: #101828;">No activity logs recorded</h4>
+                                <h4>No activity logs recorded</h4>
                                 <p style="font-size: 0.82rem; color: #667085; margin: 0;">Editorial and system activities will appear here as they occur.</p>
                             </div>
                         </div>
@@ -533,7 +532,7 @@ onMounted(() => {
                     <!-- Section 1: Most Viewed Articles (With Views & Shares) -->
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="most-viewed-heading">
                         <div class="panel-header">
-                            <h2 id="most-viewed-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="most-viewed-heading" class="panel-title">
                                 Most Viewed Articles
                             </h2>
                             <span class="panel-badge">{{ currentMonth }}</span>
@@ -551,12 +550,11 @@ onMounted(() => {
                             >
                                 <span class="rank-number" :class="{ 'top-rank': index === 0 }">{{ index + 1 }}</span>
                                 <div class="ranked-content">
-                                    <div class="ranked-category-tag">{{ pubArt.category || 'General' }}</div>
+                                    <div class="ranked-category-tag">{{ formatCategoryDisplay(pubArt.category) }}</div>
                                     <button
                                         type="button"
                                         class="ranked-title-btn"
                                         :title="pubArt.title"
-                                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                                         @click.stop="openArticleViewer(pubArt)"
                                     >
                                         {{ pubArt.title }}
@@ -584,8 +582,8 @@ onMounted(() => {
                     <!-- Section 2: Top Performing Journalists (Leaderboard) -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="top-journalists-heading">
                         <div class="panel-header">
-                            <h2 id="top-journalists-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
-                                Top Performing Journalists
+                            <h2 id="top-journalists-heading" class="panel-title">
+                                Top Journalists
                             </h2>
                             <span class="panel-badge">Leaderboard</span>
                         </div>
@@ -593,8 +591,8 @@ onMounted(() => {
                             <table class="data-table journalists-table" style="width: 100% !important; table-layout: fixed !important;">
                                 <thead>
                                     <tr>
-                                        <th class="col-author text-left" style="width: 58% !important; text-align: left !important;">Author</th>
-                                        <th class="col-article-count text-center" style="width: 42% !important; min-width: 80px !important; text-align: center !important;">Article Count</th>
+                                        <th class="col-author text-left" style="width: 72% !important; text-align: left !important;">Author</th>
+                                        <th class="col-article-count text-center" style="width: 28% !important; min-width: 72px !important; text-align: center !important;">Articles</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">

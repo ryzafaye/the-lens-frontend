@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import EicLayout from '../../layouts/EicLayout.vue';
+import PendingApprovalTable from '../../components/PendingApprovalTable.vue';
 import {
     getEicDashboard,
     updateEicReviewArticle,
@@ -9,13 +10,14 @@ import {
     returnEicArticleForRevision,
     resubmitArticle,
 } from '../../services/api.js';
-import { formatCleanArticleContent, cleanContentForEditing, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
+import { formatCleanArticleContent, sanitizeRichArticleHtml, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import {
     formatActivityStatement,
     formatPhilippineDateTime,
     formatPhilippineRelativeTime,
 } from '../../utils/activityGrammar.js';
+import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-review-articles.css';
 import '../../assets/css/executive-modals.css';
@@ -81,7 +83,7 @@ async function handleManuscriptSubmit() {
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
     const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
     if (!isArticleBodyModified(activeManuscript.value.content, newContent)) {
         showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
@@ -309,7 +311,7 @@ async function handleSaveChanges() {
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
     const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
     if (!newTitle) {
         showToast('Please enter an article headline.', 'error');
@@ -424,7 +426,7 @@ async function handleApproveForMpc() {
             ? dashExcerptRef.value.innerText.trim()
             : (activeManuscript.value.excerpt || '');
         const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
         const payload = {
             title: newTitle,
@@ -492,8 +494,25 @@ async function loadDashboardData(forceFresh = true) {
     }
 }
 
+const openActionMenuId = ref(null);
+function toggleActionMenu(id) {
+    openActionMenuId.value = openActionMenuId.value === id ? null : id;
+}
+function closeActionMenu() {
+    openActionMenuId.value = null;
+}
+
 onMounted(() => {
     loadDashboardData(true);
+    if (typeof document !== 'undefined') {
+        document.addEventListener('click', closeActionMenu);
+    }
+});
+
+onUnmounted(() => {
+    if (typeof document !== 'undefined') {
+        document.removeEventListener('click', closeActionMenu);
+    }
 });
 </script>
 
@@ -502,7 +521,7 @@ onMounted(() => {
         <main class="content-container">
             <!-- Page Title Section -->
             <div class="page-title-section animate-fade-in delay-1">
-                <h1 class="page-title" style="font-family: 'Playfair Display', Georgia, serif !important;">Dashboard</h1>
+                <h1 class="page-title">Dashboard</h1>
             </div>
 
             <!-- Metrics Row (3-Column Layout in One Line) -->
@@ -549,7 +568,7 @@ onMounted(() => {
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="pending-approval-heading">
                         <div class="panel-header">
                             <div class="panel-title-group">
-                                <h2 id="pending-approval-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                                <h2 id="pending-approval-heading" class="panel-title">
                                     Pending Approval
                                 </h2>
                                 <span
@@ -562,127 +581,24 @@ onMounted(() => {
                             <router-link to="/eic/review-articles" class="panel-action-link">View all &rarr;</router-link>
                         </div>
 
-                        <div class="table-responsive table-no-scroll">
-                            <table class="data-table eic-pending-approvals-table">
-                                <thead>
-                                    <tr>
-                                        <th style="text-align: left !important;">Article Title</th>
-                                        <th style="text-align: center !important;">Category</th>
-                                        <th class="text-center" style="text-align: center !important;">Date</th>
-                                        <th class="text-center" style="text-align: center !important;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="submissions-table-body">
-                                    <tr v-for="art in displayedPendingArticles" :key="art.id">
-                                        <td>
-                                            <div class="table-article-stack" style="min-width: 0;">
-                                                <button
-                                                    type="button"
-                                                    class="table-article-btn"
-                                                    @click="openManuscriptModal(art)"
-                                                    :title="`Review & Edit: ${art.title}`"
-                                                    style="font-family: 'Playfair Display', Georgia, serif !important; display: block; width: 100%; text-align: left; white-space: normal; word-break: break-word; overflow-wrap: break-word;"
-                                                >
-                                                    {{ art.title }}
-                                                </button>
-                                                <div class="table-article-author-row" style="white-space: normal; word-break: break-word;">
-                                                    <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
-                                                    <span>By <strong>{{ art.author || 'Author' }}</strong></span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="table-section-tag" :title="art.category || 'General'">
-                                                {{ formatShortCategory(art.category) }}
-                                            </span>
-                                        </td>
-                                        <td class="text-center" style="text-align: center !important;">
-                                            <span class="table-date" :title="art.date || ''">
-                                                {{ formatShortDate(art.date) }}
-                                            </span>
-                                        </td>
-                                        <td class="text-right">
-                                            <div class="table-actions-group">
-                                                <template v-if="isRevisionStatus(art.status)">
-                                                    <span class="badge-revision-pill" title="For Revision" style="display: inline-flex; align-items: center; justify-content: center; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 4px 6px; border-radius: 4px; font-size: 0.74rem; line-height: 1;">
-                                                        <i class="fa-solid fa-rotate-left"></i>
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-remarks"
-                                                        @click="openRemarksModal(art)"
-                                                        title="View revision remarks"
-                                                    >
-                                                        <i class="fa-solid fa-comment-dots"></i>
-                                                        <span>Remarks</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-edit"
-                                                        @click="openManuscriptModal(art)"
-                                                        title="Edit writer's manuscript"
-                                                    >
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-submit"
-                                                        @click="handleTableResubmit(art)"
-                                                        :disabled="isSubmitting"
-                                                        title="Submit revised article"
-                                                    >
-                                                        <i class="fa-solid fa-paper-plane"></i>
-                                                        <span>Submit</span>
-                                                    </button>
-                                                </template>
-                                                <template v-else>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-edit"
-                                                        @click="openManuscriptModal(art)"
-                                                        title="Edit writer's manuscript"
-                                                    >
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-revision"
-                                                        @click="openRevisionModal(art)"
-                                                        title="Direct to revision remarks"
-                                                    >
-                                                        <i class="fa-solid fa-rotate-left"></i>
-                                                        <span>Revision</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-approve"
-                                                        @click="handleQuickApprove(art)"
-                                                        :disabled="isSubmitting"
-                                                        title="Approve manuscript for M&PC"
-                                                    >
-                                                        <i class="fa-solid fa-check"></i>
-                                                        <span>Approve</span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="!isLoading && pendingArticles.length === 0">
-                                        <td colspan="4" class="empty-state-cell" style="font-size: 0.88rem; color: #667085; text-align: center !important; padding: 36px 16px !important; border-bottom: none; background: transparent; width: 100% !important;">
-                                            No pending submissions for review.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <PendingApprovalTable
+                            :articles="displayedPendingArticles"
+                            :is-loading="isLoading"
+                            :is-submitting="isSubmitting"
+                            :format-date="formatShortDate"
+                            empty-text="No pending submissions for review."
+                            @open-manuscript="openManuscriptModal"
+                            @approve="handleQuickApprove"
+                            @revision="openRevisionModal"
+                            @resubmit="handleTableResubmit"
+                            @remarks="openRemarksModal"
+                        />
                     </section>
 
                     <!-- Section 2: Activity Log -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="activity-log-heading">
                         <div class="panel-header">
-                            <h2 id="activity-log-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="activity-log-heading" class="panel-title">
                                 Activity Log
                             </h2>
                             <router-link to="/eic/activity-logs" class="panel-action-link">View all &rarr;</router-link>
@@ -705,14 +621,13 @@ onMounted(() => {
                                             <strong class="causer-name-token" style="color: #101828; font-weight: 600; margin-right: 4px;">{{ getStatement(act).causer }}</strong>
                                             <span>{{ getStatement(act).beforeSubject }}</span>
                                             <template v-if="getStatement(act).subjectName">
-                                                <em style="font-family: 'Playfair Display', Georgia, serif !important; font-style: normal; font-weight: 600; color: #101828; margin: 0 4px;">
+                                                <em>
                                                     "{{ getStatement(act).subjectName }}"
                                                 </em>
                                             </template>
                                             <span v-if="getStatement(act).afterSubject" :style="{ marginLeft: getStatement(act).subjectName ? '0px' : '4px' }">
                                                 {{ getStatement(act).afterSubject }}
                                             </span>
-                                            <span style="color: #667085; font-size: 0.75rem; margin-left: 4px;">{{ getTimestampText(act) }}.</span>
                                         </p>
                                         <div class="activity-meta-subrow" style="font-size: 0.72rem; color: #98a2b3; margin-top: 3px; display: flex; align-items: center; gap: 6px;">
                                             <span style="font-weight: 500; color: #475467;">{{ getCauserRole(act) }}</span>
@@ -725,7 +640,7 @@ onMounted(() => {
                             </div>
                             <div v-if="!isLoading && recentActivities.length === 0" class="activity-empty-state-mini">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
-                                <h4 style="font-family: 'Playfair Display', Georgia, serif !important;">No activity logs recorded</h4>
+                                <h4>No activity logs recorded</h4>
                                 <p>Editorial and system activities will appear here as they occur.</p>
                             </div>
                         </div>
@@ -737,7 +652,7 @@ onMounted(() => {
                     <!-- Section 3: Top Performing Articles (Ranked List - Exact Match with Section Head) -->
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="top-performing-articles-heading">
                         <div class="panel-header">
-                            <h2 id="top-performing-articles-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="top-performing-articles-heading" class="panel-title">
                                 Top Performing Articles
                             </h2>
                             <span id="top-performing-month-badge" class="panel-badge">{{ currentMonthName }}</span>
@@ -752,12 +667,11 @@ onMounted(() => {
                             >
                                 <span class="rank-number" :class="{ 'top-rank': idx === 0 }">{{ idx + 1 }}</span>
                                 <div class="ranked-content">
-                                    <div class="ranked-category-tag">{{ art.category || 'General' }}</div>
+                                    <div class="ranked-category-tag">{{ formatCategoryDisplay(art.category) }}</div>
                                     <button
                                         type="button"
                                         class="ranked-title-btn"
                                         :title="art.title"
-                                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                                     >
                                         {{ art.title }}
                                     </button>
@@ -784,8 +698,8 @@ onMounted(() => {
                     <!-- Section 4: Top Performing Journalists (Exact same style as Section Head) -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="top-journalists-heading">
                         <div class="panel-header">
-                            <h2 id="top-journalists-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
-                                Top Performing Journalists
+                            <h2 id="top-journalists-heading" class="panel-title">
+                                Top Journalists
                             </h2>
                             <span class="panel-badge">Leaderboard</span>
                         </div>
@@ -794,7 +708,7 @@ onMounted(() => {
                                 <thead>
                                     <tr>
                                         <th class="col-author text-left" style="text-align: left !important;">Author</th>
-                                        <th class="col-article-count text-center" style="text-align: center !important;">Article Count</th>
+                                        <th class="col-article-count text-center" style="text-align: center !important;">Articles</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">
@@ -848,7 +762,7 @@ onMounted(() => {
                 </div>
 
                 <div class="viewer-modal-body">
-                    <h1 id="viewer-title" class="viewer-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                    <h1 id="viewer-title" class="viewer-title">
                         {{ activeArticle.title }}
                     </h1>
                     <div class="viewer-byline-row">
@@ -905,7 +819,6 @@ onMounted(() => {
                         spellcheck="true"
                         role="textbox"
                         aria-multiline="true"
-                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                         @keydown="onDashHeadlineKeydown"
                     ></h2>
 
@@ -1048,7 +961,7 @@ onMounted(() => {
                 <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eaecf0; background: #ffffff;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-comment-dots" style="color: #5c0a18; font-size: 1.1rem;"></i>
-                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; ">
                             Revision Remarks
                         </h3>
                     </div>
@@ -1058,7 +971,7 @@ onMounted(() => {
                 </div>
                 <div class="modal-body" style="padding: 20px; background: #ffffff;">
                     <div style="margin-bottom: 14px;">
-                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; ">
                             {{ activeRemarksArticle.title }}
                         </h4>
                         <div style="font-size: 0.8rem; color: #475467;">

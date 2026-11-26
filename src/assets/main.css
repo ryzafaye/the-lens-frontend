@@ -5,12 +5,12 @@
 @theme {
   --color-wine: #700f2b;
   --color-burgundy: #4a091b;
-  --font-display: "Playfair Display", serif;
+  --font-display: "Merriweather", Georgia, serif;
   --font-body: "DM Sans", sans-serif;
 }
 
 :root {
-  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-heading: 'Merriweather', Georgia, serif;
   --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-body: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --sidebar-maroon: #5c0a18;
@@ -19,7 +19,7 @@
   --sidebar-maroon-border: #fecdca;
 }
 
-/* Standardized Article Titles Across The Lens System */
+/* Standardized Article Titles & Headings Across The Lens System */
 .viewer-title,
 .manuscript-headline,
 #modal-headline,
@@ -27,10 +27,18 @@
 .writer-article-title,
 .article-card-title,
 .table-article-title,
+.table-article-btn,
+.table-article-link,
 .top-article-title,
+.ranked-title,
+.ranked-title-btn,
 .draft-box-title,
-.draft-title {
-  font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+.draft-title,
+.headline-input {
+  font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0em !important;
+  line-height: 1.25 !important;
 }
 
 /* Toast Transition */
@@ -577,7 +585,7 @@
 .manuscript-text-content h2,
 .manuscript-prose h2,
 .modal-body.article-content h2 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.5rem !important;
     font-weight: 700 !important;
     margin-top: 1.5rem !important;
@@ -591,7 +599,7 @@
 .manuscript-text-content h3,
 .manuscript-prose h3,
 .modal-body.article-content h3 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.25rem !important;
     font-weight: 600 !important;
     margin-top: 1.25rem !important;
@@ -683,6 +691,381 @@ button.sidebar-footer-link:hover:not(.logout-btn) i,
 .mobile-nav-footer-link:hover:not(.logout-btn) i,
 a.sidebar-footer-link:hover:not(.logout-btn) i {
     color: #ffffff !important;
+}
+
+/* ==========================================================================
+   OFFICER PORTALS:
+   - PAGE TITLES -> MERRIWEATHER
+   - DASHBOARD TABLE / PANEL TITLES -> DM SANS
+   - ARTICLE HEADLINES -> MERRIWEATHER (REDUCED BOLDNESS & CLEAN SIZE)
+   ========================================================================== */
+.page-title,
+.activity-page-title,
+.cover-page-title,
+.feedback-page-title,
+.feedback-title-wrap h1,
+.accounts-page-title,
+.profile-title-wrap h1,
+.profile-title-wrap .page-title,
+.writer-greeting {
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
+    letter-spacing: 0em !important;
+}
+
+.panel-title,
+.right-column-stack .panel-title,
+.writer-top-performing-column .panel-title,
+.writer-section-title,
+.mpc-modal-title,
+.global-modal-title,
+.logout-modal-title,
+.return-modal-title,
+.empty-state-title {
+    font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif) !important;
+    letter-spacing: -0.01em !important;
+}
+
+.viewer-title,
+.manuscript-headline,
+#modal-headline,
+.review-box-title,
+.writer-article-title,
+.article-card-title,
+.table-article-title,
+.table-article-btn,
+.table-article-link,
+.top-article-title,
+.ranked-title,
+.ranked-title-btn,
+.draft-box-title,
+.draft-title,
+.headline-input {
+    font-family: 'Merriweather', Georgia, serif !important;
+    font-weight: 600 !important;
+    letter-spacing: 0em !important;
+    line-height: 1.25 !important;
+}
+
+.viewer-title {
+    font-size: 1.5rem !important;
+    line-height: 1.25 !important;
+}
+
+.manuscript-headline,
+#modal-headline {
+    font-size: 1.45rem !important;
+    line-height: 1.25 !important;
+}
+
+.review-box-title {
+    font-size: 1.05rem !important;
+    line-height: 1.25 !important;
+}
+
+/* ==========================================================================
+   DASHBOARD TABLES, CATEGORY PILLS, OVERFLOW ACTIONS & SIDEBAR CARDS
+   ========================================================================== */
+.table-section-tag,
+.ranked-category-tag,
+.review-box-category {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    height: 22px !important;
+    padding: 0 8px !important;
+    line-height: 1 !important;
+    font-size: 0.72rem !important;
+}
+
+.metric-value,
+.writer-metric-value,
+.stat-value {
+    font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif) !important;
+}
+
+.pending-approval-no-scroll {
+    width: 100% !important;
+    overflow: visible !important;
+}
+
+.table-responsive {
+    width: 100% !important;
+    overflow: visible !important;
+}
+
+.unified-pending-table,
+.pending-approvals-table:not(.unified-pending-table),
+.eic-pending-approvals-table,
+.section-head-pending-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: auto !important;
+}
+
+.unified-pending-table th,
+.unified-pending-table td,
+.pending-approvals-table:not(.unified-pending-table) th,
+.pending-approvals-table:not(.unified-pending-table) td,
+.eic-pending-approvals-table th,
+.eic-pending-approvals-table td,
+.section-head-pending-table th,
+.section-head-pending-table td {
+    padding: 11px 10px !important;
+}
+
+.unified-pending-table th.col-title,
+.unified-pending-table td.col-title,
+.pending-approvals-table:not(.unified-pending-table) th:first-child,
+.pending-approvals-table:not(.unified-pending-table) td:first-child,
+.eic-pending-approvals-table th:first-child,
+.eic-pending-approvals-table td:first-child,
+.section-head-pending-table th:first-child,
+.section-head-pending-table td:first-child {
+    width: auto !important;
+    min-width: 150px !important;
+    padding-left: 14px !important;
+    padding-right: 12px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+.unified-pending-table th.col-category,
+.unified-pending-table td.col-category,
+.unified-pending-table th.col-date,
+.unified-pending-table td.col-date,
+.unified-pending-table th.col-status,
+.unified-pending-table td.col-status,
+.unified-pending-table th.col-actions,
+.unified-pending-table td.col-actions,
+.pending-approvals-table:not(.unified-pending-table) th.col-category,
+.pending-approvals-table:not(.unified-pending-table) td.col-category,
+.pending-approvals-table:not(.unified-pending-table) th.col-date,
+.pending-approvals-table:not(.unified-pending-table) td.col-date,
+.pending-approvals-table:not(.unified-pending-table) th.col-status,
+.pending-approvals-table:not(.unified-pending-table) td.col-status,
+.pending-approvals-table:not(.unified-pending-table) th.col-actions,
+.pending-approvals-table:not(.unified-pending-table) td.col-actions,
+.pending-approvals-table:not(.unified-pending-table) th:last-child,
+.pending-approvals-table:not(.unified-pending-table) td:last-child,
+.eic-pending-approvals-table th:nth-child(2),
+.eic-pending-approvals-table td:nth-child(2),
+.eic-pending-approvals-table th:nth-child(3),
+.eic-pending-approvals-table td:nth-child(3),
+.eic-pending-approvals-table th:nth-child(4),
+.eic-pending-approvals-table td:nth-child(4),
+.eic-pending-approvals-table th:nth-child(5),
+.eic-pending-approvals-table td:nth-child(5),
+.section-head-pending-table th.col-date,
+.section-head-pending-table td.col-date,
+.section-head-pending-table th.col-actions,
+.section-head-pending-table td.col-actions {
+    white-space: nowrap !important;
+    width: 1% !important;
+    min-width: 0 !important;
+}
+
+.unified-pending-table th:last-child,
+.unified-pending-table td:last-child,
+.pending-approvals-table:not(.unified-pending-table) th:last-child,
+.pending-approvals-table:not(.unified-pending-table) td:last-child,
+.eic-pending-approvals-table th:last-child,
+.eic-pending-approvals-table td:last-child,
+.section-head-pending-table th:last-child,
+.section-head-pending-table td:last-child {
+    padding-right: 12px !important;
+}
+
+.status-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.status-badge-pill.is-review {
+    background-color: #fef7e0;
+    color: #9a5b00;
+    border: 1px solid #fde68a;
+}
+
+.status-badge-pill.is-revision {
+    background-color: #fff1f2;
+    color: #be123c;
+    border: 1px solid #fecdd3;
+}
+
+.table-actions-group {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+}
+
+.action-overflow-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.btn-action-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    border: 1px solid #d0d5dd;
+    background: #ffffff;
+    color: #475467;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-action-more:hover {
+    background: #f9fafb;
+    border-color: #98a2b3;
+    color: #101828;
+}
+
+.action-overflow-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    min-width: 160px;
+    background: #ffffff;
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+    padding: 4px;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.action-overflow-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #344054;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.action-overflow-item:hover {
+    background: #f9fafb;
+    color: #101828;
+}
+
+.action-overflow-item.is-danger {
+    color: #b42318;
+}
+
+.action-overflow-item.is-danger:hover {
+    background: #fef3f2;
+}
+
+/* Most Viewed / Top Performing Articles: Left-align Rank #1 consistently with #2 and #3 */
+.ranked-content,
+.ranked-title,
+.ranked-title-btn {
+    text-align: left !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    display: block !important;
+    width: 100% !important;
+}
+
+/* Top Journalists: Widen Author column, fit on one line, remove boldness */
+.journalists-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+}
+
+.journalists-table th.col-author,
+.journalists-table td.col-author,
+.journalists-table td.col-author-name {
+    width: 72% !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.journalists-table th.col-article-count,
+.journalists-table td.col-article-count {
+    width: 28% !important;
+    min-width: 72px !important;
+}
+
+.journalists-table .author-name {
+    font-weight: 400 !important;
+    white-space: nowrap !important;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-main-grid,
+    .writer-split-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Sidebar Pending Approval Count Badges (Review Article, Media Desk, Cartoon Desk) */
+.sidebar-nav-item > span:first-of-type,
+.mobile-nav-item > span:first-of-type,
+.mobile-nav-link > span:first-of-type {
+    min-width: 0;
+}
+
+.sidebar-nav-badge {
+    margin-left: auto;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 19px;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    background-color: rgba(255, 255, 255, 0.94);
+    color: var(--sidebar-maroon, #5c0a18);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-nav-badge.is-zero {
+    background-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.76);
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.sidebar-nav-item:hover .sidebar-nav-badge:not(.is-zero),
+.sidebar-nav-item.active .sidebar-nav-badge:not(.is-zero),
+.mobile-nav-item:hover .sidebar-nav-badge:not(.is-zero),
+.mobile-nav-item.active .sidebar-nav-badge:not(.is-zero),
+.mobile-nav-link:hover .sidebar-nav-badge:not(.is-zero),
+.mobile-nav-link.active .sidebar-nav-badge:not(.is-zero) {
+    background-color: #ffffff;
+    color: var(--sidebar-maroon, #5c0a18);
 }
 
 

@@ -136,7 +136,7 @@ watch(() => route?.path, () => {
 </script>
 
 <template>
-    <div class="bg-white text-stone-900 font-body antialiased min-h-screen flex flex-col overflow-x-clip">
+    <div class="public-site-shell bg-white text-stone-900 font-body antialiased min-h-screen flex flex-col overflow-x-clip">
         <!-- Site Header -->
         <header id="header-container" class="site-header w-full font-body border-b border-stone-200 shadow-sm bg-white">
             <!-- Top Bar -->
