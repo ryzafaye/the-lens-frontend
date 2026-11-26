@@ -171,7 +171,7 @@ watch(() => route?.path, () => {
 
             <!-- Brand & Search Row -->
             <div class="brand-search-row">
-                <button id="menu-button" class="mobile-menu-button" type="button" aria-label="Open navigation" :aria-expanded="isMobileNavOpen" @click="toggleMobileNav(true)">
+                <button id="menu-button" class="mobile-menu-button" type="button" aria-label="Open navigation" :aria-expanded="isMobileNavOpen" @click="toggleMobileNav()">
                     <span class="menu-glyph" aria-hidden="true">☰</span>
                 </button>
 

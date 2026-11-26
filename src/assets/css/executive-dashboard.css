@@ -1695,7 +1695,8 @@ body.dashboard-body {
 
     .mobile-nav-backdrop.open,
     .mobile-nav-backdrop.active,
-    .mobile-nav-backdrop.expanded {
+    .mobile-nav-backdrop.expanded,
+    .mobile-nav-dropdown.is-open {
         display: block !important;
         opacity: 1;
     }
