@@ -154,6 +154,9 @@ watch(() => route?.path, () => {
                         </span>
                     </div>
                     <div class="top-bar-actions">
+                        <a class="instagram-link" href="https://www.instagram.com/thelenspupbc?jplx=cm84cmxwMTlqaXNo" target="_blank" rel="noopener noreferrer" aria-label="The Lens Publication on Instagram" title="The Lens on Instagram">
+                            <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+                        </a>
                         <a class="facebook-link" href="https://www.facebook.com/profile.php?id=61560889387183" target="_blank" rel="noopener noreferrer" aria-label="The Lens Publication on Facebook" title="The Lens on Facebook">
                             <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
                         </a>
@@ -329,14 +332,12 @@ watch(() => route?.path, () => {
                         <li class="mobile-only-nav-item">
                             <router-link to="/feedback" class="nav-link" :class="{ 'is-active': route?.path === '/feedback' }"><span>Send Feedback</span></router-link>
                         </li>
-                        <li class="mobile-only-nav-item">
-                            <router-link :to="authStore.isAuthenticated ? dashboardRoute : '/login'" class="nav-link">
-                                <i :class="authStore.isAuthenticated ? 'fa-solid fa-gauge' : 'fa-regular fa-user'" class="mr-1"></i>
-                                <span>{{ authStore.isAuthenticated ? 'Back to Dashboard' : 'Login as a Member' }}</span>
-                            </router-link>
-                        </li>
                     </ul>
                     <div class="mobile-nav-socials" aria-label="Publication contact links">
+                        <a href="https://www.instagram.com/thelenspupbc?jplx=cm84cmxwMTlqaXNo" target="_blank" rel="noopener noreferrer">
+                            <i class="fa-brands fa-instagram" aria-hidden="true"></i>
+                            <span>Visit Instagram</span>
+                        </a>
                         <a href="https://www.facebook.com/profile.php?id=61560889387183" target="_blank" rel="noopener noreferrer">
                             <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
                             <span>Visit Facebook Page</span>
@@ -345,6 +346,12 @@ watch(() => route?.path, () => {
                             <i class="fa-regular fa-envelope" aria-hidden="true"></i>
                             <span>Email The Lens</span>
                         </a>
+                    </div>
+                    <div class="mobile-nav-account">
+                        <router-link :to="authStore.isAuthenticated ? dashboardRoute : '/login'" class="mobile-nav-login-btn">
+                            <i :class="authStore.isAuthenticated ? 'fa-solid fa-gauge' : 'fa-regular fa-user'" aria-hidden="true"></i>
+                            <span>{{ authStore.isAuthenticated ? 'Back to Dashboard' : 'Login as a Member' }}</span>
+                        </router-link>
                     </div>
                 </div>
             </nav>
@@ -392,6 +399,10 @@ watch(() => route?.path, () => {
                 <div id="footer-contact">
                     <h3 class="footer-heading text-sm font-semibold text-white uppercase tracking-wider mb-3">Contact &amp; Socials</h3>
                     <div class="flex flex-col space-y-2 text-xs text-stone-400">
+                        <a href="https://www.instagram.com/thelenspupbc?jplx=cm84cmxwMTlqaXNo" target="_blank" rel="noopener noreferrer" class="footer-link hover:text-white transition-colors inline-flex items-center gap-2.5">
+                            <i class="fa-brands fa-instagram text-rose-400 w-4 text-center shrink-0" aria-hidden="true"></i>
+                            <span>Instagram</span>
+                        </a>
                         <a href="https://www.facebook.com/profile.php?id=61560889387183" target="_blank" rel="noopener noreferrer" class="footer-link hover:text-white transition-colors inline-flex items-center gap-2.5">
                             <i class="fa-brands fa-facebook-f text-rose-400 w-4 text-center shrink-0" aria-hidden="true"></i>
                             <span>Facebook Page</span>

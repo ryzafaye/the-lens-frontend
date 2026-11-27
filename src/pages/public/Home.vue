@@ -53,7 +53,12 @@ async function fetchHomeData() {
         featuredArticle.value = data.featuredArticle || null;
         latestArticles.value = (data.latestArticles || []).slice(0, 5);
         moreStories.value = data.moreStories || [];
-        categorySections.value = data.categorySections || [];
+        categorySections.value = (data.categorySections || []).map((section) => ({
+            id: section.category?.id ?? section.id,
+            name: section.category?.name ?? section.name ?? '',
+            slug: section.category?.slug ?? section.slug ?? '',
+            articles: section.articles || [],
+        }));
     } catch (err) {
         console.error('Failed to load homepage data:', err);
         error.value = 'Failed to load stories. Please try refreshing.';
