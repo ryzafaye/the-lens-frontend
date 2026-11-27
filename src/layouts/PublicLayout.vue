@@ -91,7 +91,7 @@ function submitSearch() {
     router.push({ path: '/archives', query });
 }
 
-// Click outside handler for filter dropdown
+// Click outside & Escape handler for filter dropdown and mobile drawer
 function handleDocumentClick(e) {
     const filterShell = document.getElementById('global-search-shell');
     if (filterShell && !filterShell.contains(e.target)) {
@@ -99,15 +99,24 @@ function handleDocumentClick(e) {
     }
 }
 
+function handleKeydown(e) {
+    if (e.key === 'Escape') {
+        if (isFilterOpen.value) isFilterOpen.value = false;
+        if (isMobileNavOpen.value) toggleMobileNav(false);
+    }
+}
+
 onMounted(() => {
     if (typeof document !== 'undefined') {
         document.addEventListener('click', handleDocumentClick);
+        document.addEventListener('keydown', handleKeydown);
     }
 });
 
 onUnmounted(() => {
     if (typeof document !== 'undefined') {
         document.removeEventListener('click', handleDocumentClick);
+        document.removeEventListener('keydown', handleKeydown);
         if (document.body) {
             document.body.style.overflow = '';
         }
@@ -127,7 +136,7 @@ watch(() => route?.path, () => {
 </script>
 
 <template>
-    <div class="bg-white text-stone-900 font-body antialiased min-h-screen flex flex-col">
+    <div class="public-site-shell bg-white text-stone-900 font-body antialiased min-h-screen flex flex-col overflow-x-clip">
         <!-- Site Header -->
         <header id="header-container" class="site-header w-full font-body border-b border-stone-200 shadow-sm bg-white">
             <!-- Top Bar -->
@@ -162,7 +171,7 @@ watch(() => route?.path, () => {
 
             <!-- Brand & Search Row -->
             <div class="brand-search-row">
-                <button id="menu-button" class="mobile-menu-button" type="button" aria-label="Open navigation" :aria-expanded="isMobileNavOpen" @click="toggleMobileNav(true)">
+                <button id="menu-button" class="mobile-menu-button" type="button" aria-label="Open navigation" :aria-expanded="isMobileNavOpen" @click="toggleMobileNav()">
                     <span class="menu-glyph" aria-hidden="true">☰</span>
                 </button>
 

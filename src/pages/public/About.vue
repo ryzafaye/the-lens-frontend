@@ -385,17 +385,25 @@ onUnmounted(() => {
                                 </div>
                             </div>
 
-                            <!-- Sleek Hover Overlay / Action -->
+                            <!-- Sleek Hover Overlay / Action (and tap-friendly pill on mobile) -->
                             <div class="absolute inset-0 bg-stone-900/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4">
                                 <button
                                     type="button"
-                                    class="px-4 py-2 bg-white text-stone-900 text-xs font-bold rounded-lg shadow-md transform translate-y-2 group-hover:translate-y-0 transition-transform duration-200 inline-flex items-center gap-2 hover:bg-rose-50"
+                                    class="px-4 py-2.5 min-h-[44px] bg-white text-stone-900 text-xs font-bold rounded-lg shadow-md transform translate-y-2 group-hover:translate-y-0 transition-transform duration-200 inline-flex items-center gap-2 hover:bg-rose-50"
                                     @click.stop="openPreview(doc)"
                                 >
                                     <i class="fa-solid fa-expand text-[10px]" aria-hidden="true"></i>
                                     <span>Preview document</span>
                                 </button>
                             </div>
+                            <button
+                                type="button"
+                                class="md:hidden mt-3 mx-auto flex items-center justify-center gap-1.5 px-3 py-2 min-h-[40px] bg-white/95 border border-stone-200 text-wine text-[11px] font-bold rounded-lg shadow-xs"
+                                @click.stop="openPreview(doc)"
+                            >
+                                <i class="fa-solid fa-expand text-[10px]" aria-hidden="true"></i>
+                                <span>Preview document</span>
+                            </button>
                         </div>
 
                         <!-- Document Details & Download Action -->
@@ -426,7 +434,7 @@ onUnmounted(() => {
             <!-- 5. Document Preview Modal Dialog -->
             <div
                 v-if="previewDoc"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all"
+                class="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-all"
                 role="dialog"
                 aria-modal="true"
                 :aria-label="previewDoc.title + ' Preview'"
@@ -455,7 +463,7 @@ onUnmounted(() => {
                             <table class="w-full text-left text-xs border-collapse">
                                 <thead>
                                     <tr class="bg-[#571525] text-white">
-                                        <th v-for="col in previewDoc.columns" :key="col" class="py-2.5 px-3 font-semibold tracking-wider text-[11px]">
+                                        <th v-for="(col, cIdx) in previewDoc.columns" :key="col" class="py-2.5 px-3 font-semibold tracking-wider text-[11px]" :class="cIdx === 0 ? 'text-left' : 'text-center'">
                                             {{ col }}
                                         </th>
                                     </tr>

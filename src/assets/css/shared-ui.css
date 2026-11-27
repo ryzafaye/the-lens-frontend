@@ -115,7 +115,7 @@
 }
 
 .metric-value {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif) !important;
     font-size: 2.1rem;
     font-weight: 700;
     color: var(--text-primary, #101828);
@@ -139,21 +139,21 @@
     scrollbar-width: thin;
 }
 
-.pending-approvals-table {
+.pending-approvals-table:not(.unified-pending-table) {
     width: 100% !important;
     min-width: 540px !important;
     table-layout: fixed !important;
     border-collapse: collapse !important;
 }
 
-.pending-approvals-table th,
-.pending-approvals-table td {
+.pending-approvals-table:not(.unified-pending-table) th,
+.pending-approvals-table:not(.unified-pending-table) td {
     vertical-align: middle !important;
     box-sizing: border-box !important;
     padding: 12px 8px !important;
 }
 
-.pending-approvals-table th,
+.pending-approvals-table:not(.unified-pending-table) th,
 .journalists-table th,
 .transparency-table th,
 .pending-release-table th,
@@ -163,15 +163,27 @@
     text-align: center !important;
 }
 
-/* Col 1: Article Title & Author (32%) */
+/* Col 1: First column name must be left-aligned */
 .pending-approvals-table th.col-title,
-.pending-approvals-table th:first-child {
-    width: 32% !important;
-    text-align: center !important;
+.pending-approvals-table th:first-child,
+.journalists-table th.col-author,
+.journalists-table th:first-child,
+.transparency-table th:first-child,
+.pending-release-table th:first-child,
+.eic-pending-approvals-table th:first-child,
+.section-head-pending-table th:first-child,
+.data-table th:first-child,
+table th:first-child {
+    text-align: left !important;
 }
 
-.pending-approvals-table td.col-title,
-.pending-approvals-table td:first-child {
+.pending-approvals-table:not(.unified-pending-table) th.col-title,
+.pending-approvals-table:not(.unified-pending-table) th:first-child {
+    width: 32% !important;
+}
+
+.pending-approvals-table:not(.unified-pending-table) td.col-title,
+.pending-approvals-table:not(.unified-pending-table) td:first-child {
     width: 32% !important;
     padding-left: 12px !important;
     padding-right: 6px !important;
@@ -179,16 +191,16 @@
 }
 
 /* Col 2: Category (14% - Always Visible) */
-.pending-approvals-table th.col-category,
-.pending-approvals-table th:nth-child(2) {
+.pending-approvals-table:not(.unified-pending-table) th.col-category,
+.pending-approvals-table:not(.unified-pending-table) th:nth-child(2) {
     width: 14% !important;
     min-width: 75px !important;
     text-align: center !important;
     display: table-cell !important;
 }
 
-.pending-approvals-table td.col-category,
-.pending-approvals-table td:nth-child(2) {
+.pending-approvals-table:not(.unified-pending-table) td.col-category,
+.pending-approvals-table:not(.unified-pending-table) td:nth-child(2) {
     width: 14% !important;
     min-width: 75px !important;
     padding-left: 4px !important;
@@ -198,16 +210,16 @@
 }
 
 /* Col 3: Date (12% - Always Visible) */
-.pending-approvals-table th.col-date,
-.pending-approvals-table th:nth-child(3) {
+.pending-approvals-table:not(.unified-pending-table) th.col-date,
+.pending-approvals-table:not(.unified-pending-table) th:nth-child(3) {
     width: 12% !important;
     min-width: 65px !important;
     text-align: center !important;
     display: table-cell !important;
 }
 
-.pending-approvals-table td.col-date,
-.pending-approvals-table td:nth-child(3) {
+.pending-approvals-table:not(.unified-pending-table) td.col-date,
+.pending-approvals-table:not(.unified-pending-table) td:nth-child(3) {
     width: 12% !important;
     min-width: 65px !important;
     padding-left: 4px !important;
@@ -217,17 +229,17 @@
 }
 
 /* Col 4: Action Buttons (42%, min 215px) */
-.pending-approvals-table th.col-actions,
-.pending-approvals-table th:nth-child(4),
-.pending-approvals-table th:last-child {
+.pending-approvals-table:not(.unified-pending-table) th.col-actions,
+.pending-approvals-table:not(.unified-pending-table) th:nth-child(4),
+.pending-approvals-table:not(.unified-pending-table) th:last-child {
     width: 42% !important;
     min-width: 215px !important;
     text-align: center !important;
 }
 
-.pending-approvals-table td.col-actions,
-.pending-approvals-table td:nth-child(4),
-.pending-approvals-table td:last-child {
+.pending-approvals-table:not(.unified-pending-table) td.col-actions,
+.pending-approvals-table:not(.unified-pending-table) td:nth-child(4),
+.pending-approvals-table:not(.unified-pending-table) td:last-child {
     width: 42% !important;
     min-width: 215px !important;
     padding-left: 4px !important;
@@ -247,7 +259,7 @@
 }
 
 .table-article-btn {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-weight: 700 !important;
     font-size: 0.88rem !important;
     color: var(--text-primary, #101828) !important;
@@ -285,6 +297,21 @@
 .table-author-subline i {
     font-size: 0.68rem !important;
     color: var(--sidebar-maroon, #5c0a18) !important;
+}
+
+.badge-revision-pill {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    background: #fff1f2 !important;
+    color: #be123c !important;
+    border: 1px solid #fecdd3 !important;
+    padding: 4px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.74rem !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
 }
 
 .table-section-tag {
@@ -433,7 +460,7 @@
 
 .journalists-table th.col-author {
     width: 58% !important;
-    text-align: center !important;
+    text-align: left !important;
     padding-left: 14px !important;
     padding-right: 6px !important;
 }
@@ -803,7 +830,7 @@
 }
 
 .global-modal-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.25rem !important;
     font-weight: 700 !important;
     color: #101828 !important;

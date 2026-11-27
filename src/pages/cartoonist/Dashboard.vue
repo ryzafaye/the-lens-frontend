@@ -370,6 +370,9 @@ onMounted(() => {
                     </div>
 
                     <div class="media-card-body" style="padding: 14px 16px; display: flex; flex-direction: column; flex: 1;">
+                        <h3 class="media-item-title" :title="cleanTitle(item)" style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ cleanTitle(item) }}
+                        </h3>
                         <div class="media-card-meta" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #64748b; margin-bottom: 12px;">
                             <span style="white-space: nowrap;"><i class="fa-regular fa-calendar"></i> {{ item.date || item.formattedDate || 'Recent' }}</span>
                             <span style="white-space: nowrap;"><i class="fa-solid fa-paintbrush" style="color: #700f2b;"></i> <strong>{{ cleanArtistName(item.artist_name || item.uploader_name) }}</strong></span>
@@ -399,7 +402,7 @@ onMounted(() => {
                                 <span>Resubmit</span>
                             </button>
 
-                            <template v-if="effectiveIsSectionHead">
+                            <template v-else-if="effectiveIsSectionHead">
                                 <button
                                     type="button"
                                     class="btn-table-action btn-table-revision"
@@ -464,6 +467,9 @@ onMounted(() => {
                     </div>
 
                     <div style="margin-top: 14px;">
+                        <h3 style="font-size: 1.12rem; font-weight: 700; color: #1e293b; margin: 0 0 8px 0; font-family: 'DM Sans', sans-serif; word-break: break-word;">
+                            {{ cleanTitle(activeInspectItem) }}
+                        </h3>
                         <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #64748b;">
                             <span style="white-space: nowrap;"><i class="fa-regular fa-calendar" style="margin-right: 6px;"></i> {{ activeInspectItem.date || activeInspectItem.formattedDate || 'Recent' }}</span>
                             <span style="white-space: nowrap;"><i class="fa-solid fa-paintbrush" style="margin-right: 6px; color: #700f2b;"></i> <span>Cartoonist: <strong>{{ cleanArtistName(activeInspectItem.artist_name || activeInspectItem.uploader_name) }}</strong></span></span>

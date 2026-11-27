@@ -472,7 +472,7 @@
 }
 
 .manage-empty-title {
-    font-family: var(--font-heading, 'Newsreader', 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Newsreader', 'Merriweather', Georgia, serif);
     font-size: 1.18rem;
     font-weight: 700;
     color: var(--text-primary, #101828);
@@ -772,7 +772,7 @@
 }
 
 .article-card-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.05rem !important;
     font-weight: 700 !important;
     color: var(--text-primary, #101828) !important;

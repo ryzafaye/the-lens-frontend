@@ -6,7 +6,7 @@
 /* Page Header Typography Parity */
 .page-title,
 .cover-page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.75rem !important;
     font-weight: 700 !important;
     color: var(--text-primary, #101828) !important;

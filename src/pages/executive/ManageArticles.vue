@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import ExecutiveLayout from '../../layouts/ExecutiveLayout.vue';
 import {
@@ -11,12 +11,14 @@ import {
 } from '../../services/api.js';
 import {
     formatCleanArticleContent,
-    cleanContentForEditing,
-    prepareContentForSaving,
+    formatContentForEditor,
+    sanitizeRichArticleHtml,
 } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import { currentUser } from '../../stores/auth.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
+import ArticleRichToolbar from '../../components/ArticleRichToolbar.vue';
+import { handleRichEditorKeydown, handleRichEditorPaste } from '../../utils/richEditor.js';
 import '../../assets/css/executive-manage-articles.css';
 import '../../assets/css/executive-modals.css';
 
@@ -52,6 +54,7 @@ const isViewerOpen = ref(false);
 const activeArticle = ref(null);
 
 const isEditOpen = ref(false);
+const editBodyRef = ref(null);
 const editForm = ref({
     id: null,
     title: '',
@@ -241,17 +244,29 @@ function handleViewerDelete() {
     promptAction(activeArticle.value, 'delete');
 }
 
+function syncEditBodyContent() {
+    if (editBodyRef.value) {
+        editForm.value.content = editBodyRef.value.innerHTML;
+    }
+}
+
 // Edit Modal
 function openEditModal(article) {
     closeAllMenus();
+    const initialHtml = formatContentForEditor(article.content || article.excerpt || '');
     editForm.value = {
         id: article.id,
         title: article.title || '',
         category: article.category || 'News',
         excerpt: article.excerpt || '',
-        content: cleanContentForEditing(article.content || ''),
+        content: initialHtml,
     };
     isEditOpen.value = true;
+    nextTick(() => {
+        if (editBodyRef.value) {
+            editBodyRef.value.innerHTML = initialHtml;
+        }
+    });
 }
 
 function closeEditModal() {
@@ -268,8 +283,13 @@ async function saveEdit() {
         showToast('Please provide an excerpt / lead paragraph.', 'danger');
         return;
     }
-    if (!editForm.value.content.trim()) {
+    const rawBody = editBodyRef.value ? editBodyRef.value.innerHTML : editForm.value.content;
+    const plainBodyText = editBodyRef.value
+        ? editBodyRef.value.innerText.trim()
+        : String(rawBody || '').replace(/<[^>]+>/g, '').trim();
+    if (!plainBodyText) {
         showToast('Article content cannot be empty.', 'danger');
+        editBodyRef.value?.focus();
         return;
     }
 
@@ -288,7 +308,7 @@ async function saveEdit() {
             title: editForm.value.title.trim(),
             category: editForm.value.category,
             excerpt: editForm.value.excerpt.trim(),
-            content: prepareContentForSaving(editForm.value.content),
+            content: sanitizeRichArticleHtml(rawBody),
         };
         const res = await updateExecutiveArticle(editForm.value.id, payload);
         if (res) {
@@ -795,7 +815,7 @@ onUnmounted(() => {
                             <option value="News">News</option>
                             <option value="Feature">Feature</option>
                             <option value="Opinion">Opinion</option>
-                            <option value="Science & Technology">Science & Technology</option>
+                            <option value="Science & Technology">SciTech</option>
                             <option value="Literature">Literature</option>
                         </select>
                     </div>
@@ -807,7 +827,20 @@ onUnmounted(() => {
 
                     <div class="form-field">
                         <label for="exec-edit-body-input">Article Body / Manuscript Content <span class="required-star">*</span></label>
-                        <textarea id="exec-edit-body-input" v-model="editForm.content" class="form-textarea edit-body-textarea" rows="10" placeholder="Type or paste the manuscript content..." required></textarea>
+                        <ArticleRichToolbar :target="editBodyRef" sticky-top="0px" @change="syncEditBodyContent" />
+                        <div
+                            id="exec-edit-body-input"
+                            ref="editBodyRef"
+                            class="edit-body-rich rich-editable-surface"
+                            contenteditable="true"
+                            spellcheck="true"
+                            role="textbox"
+                            aria-multiline="true"
+                            data-placeholder="Type or paste the manuscript content..."
+                            @input="syncEditBodyContent"
+                            @keydown="(e) => handleRichEditorKeydown(e, editBodyRef, syncEditBodyContent)"
+                            @paste="(e) => handleRichEditorPaste(e, syncEditBodyContent)"
+                        ></div>
                     </div>
 
                     <div class="modal-footer edit-modal-footer">

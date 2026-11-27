@@ -18,7 +18,7 @@
     --light-pink: #f8f0f2;
     --border: #ded4d5;
 
-    --heading-font: "Playfair Display", Georgia, serif;
+    --heading-font: 'Merriweather', Georgia, serif;
     --body-font: "DM Sans", Arial, sans-serif;
 }
 
@@ -89,7 +89,7 @@ h4,
 .latest-title,
 .story-card-title {
     color: var(--maroon);
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-weight: 1000;
     line-height: 1.25;
 }

@@ -4,6 +4,7 @@ import WriterLayout from '../../layouts/WriterLayout.vue';
 import { getUser, updateProfileInfo, updatePassword } from '../../services/api.js';
 import { setAuthUser } from '../../stores/auth.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../../utils/image.js';
+import { validateEmail, normalizeEmail, extractApiErrorMessage } from '../../utils/validation.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-profile-settings.css';
 
@@ -13,6 +14,9 @@ const isLoading = ref(true);
 // Profile form state
 const fullName = ref('');
 const studentNumber = ref('');
+const email = ref('');
+const emailError = ref('');
+const userRole = ref('Writer');
 const avatarPreview = ref('/images/member-placeholder.svg');
 const avatarFile = ref(null);
 const removeAvatar = ref(false);
@@ -95,12 +99,31 @@ function onResetAvatar() {
     showToast('Photo marked for removal. Click Save Changes to confirm.', 'info');
 }
 
+function validateEmailField() {
+    const err = validateEmail(email.value, { required: true, maxLength: 255 });
+    emailError.value = err;
+    return !err;
+}
+
+function onEmailInput() {
+    if (emailError.value) {
+        validateEmailField();
+    }
+}
+
 // Submit Profile Info
 async function handleUpdateProfile() {
     if (!fullName.value.trim() || !studentNumber.value.trim()) {
-        showToast('Please fill in both Full Name and Student Number.', 'danger');
+        showToast('Please fill in Full Name and Student Number.', 'danger');
         return;
     }
+    if (!validateEmailField()) {
+        showToast(emailError.value || 'Please enter a valid email address.', 'danger');
+        return;
+    }
+
+    const cleanedEmail = normalizeEmail(email.value);
+    email.value = cleanedEmail;
 
     const confirmed = await confirmAction({
         title: 'Save Profile Changes',
@@ -117,6 +140,7 @@ async function handleUpdateProfile() {
         const formData = new FormData();
         formData.append('full_name', fullName.value.trim());
         formData.append('student_number', studentNumber.value.trim());
+        formData.append('email', cleanedEmail);
 
         if (avatarFile.value) {
             formData.append('avatar', avatarFile.value);
@@ -130,12 +154,16 @@ async function handleUpdateProfile() {
         const freshAvatar = res.profile_picture_url || res.user?.profile_picture_url || res.user?.avatar_url;
         const freshName = res.user?.full_name || fullName.value.trim();
         const freshStudent = res.user?.student_number || studentNumber.value.trim();
+        const freshEmail = res.user?.email || cleanedEmail;
+        email.value = freshEmail;
+        emailError.value = '';
 
         if (removeAvatar.value) {
             avatarPreview.value = '/images/member-placeholder.svg';
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
                 avatar_url: '/images/member-placeholder.svg',
                 profile_picture_url: null,
             });
@@ -144,6 +172,7 @@ async function handleUpdateProfile() {
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
                 avatar_url: freshAvatar,
                 profile_picture_url: freshAvatar,
             });
@@ -151,6 +180,7 @@ async function handleUpdateProfile() {
             setAuthUser({
                 full_name: freshName,
                 student_number: freshStudent,
+                email: freshEmail,
             });
         }
 
@@ -158,7 +188,12 @@ async function handleUpdateProfile() {
         avatarFile.value = null;
         if (fileInputRef.value) fileInputRef.value.value = '';
     } catch (err) {
-        const errMsg = err.response?.data?.message || 'Failed to update profile.';
+        if (err.response?.data?.errors?.email) {
+            emailError.value = Array.isArray(err.response.data.errors.email)
+                ? err.response.data.errors.email[0]
+                : err.response.data.errors.email;
+        }
+        const errMsg = extractApiErrorMessage(err, 'Failed to update profile.');
         showToast(errMsg, 'danger');
     } finally {
         isSavingProfile.value = false;
@@ -216,9 +251,11 @@ onMounted(async () => {
     // Immediate zero-latency hydration from localStorage
     const cachedName = localStorage.getItem('userName');
     const cachedStudent = localStorage.getItem('studentNumber');
+    const cachedEmail = localStorage.getItem('userEmail');
     const cachedAvatar = localStorage.getItem('userAvatar');
     if (cachedName) fullName.value = cachedName;
     if (cachedStudent) studentNumber.value = cachedStudent;
+    if (cachedEmail) email.value = cachedEmail;
     if (cachedAvatar) avatarPreview.value = resolveAvatarUrl(cachedAvatar);
 
     try {
@@ -226,6 +263,8 @@ onMounted(async () => {
         if (data?.user) {
             fullName.value = data.user.full_name || data.user.name || '';
             studentNumber.value = data.user.student_number || data.user.studentNumber || '';
+            email.value = data.user.email || '';
+            userRole.value = data.user.role?.role_name || data.user.role || 'Writer';
             const userAvatar = data.user.profile_picture_url || data.user.avatar_url || data.user.avatarUrl;
             if (userAvatar) {
                 avatarPreview.value = resolveAvatarUrl(userAvatar);
@@ -347,6 +386,45 @@ onMounted(async () => {
                                     required
                                     maxlength="80"
                                     autocomplete="name"
+                                >
+                            </div>
+
+                            <!-- Email Address Field -->
+                            <div class="settings-field-group">
+                                <label for="input-email" class="settings-label">
+                                    <span>Email Address <span class="req">*</span></span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="input-email"
+                                    v-model="email"
+                                    @input="onEmailInput"
+                                    @blur="validateEmailField"
+                                    class="settings-input"
+                                    :class="{ 'is-invalid': !!emailError }"
+                                    placeholder="Enter your email address"
+                                    required
+                                    maxlength="255"
+                                    autocomplete="email"
+                                >
+                                <p v-if="emailError" class="settings-field-error">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                    <span>{{ emailError }}</span>
+                                </p>
+                            </div>
+
+                            <!-- Role Field -->
+                            <div class="settings-field-group">
+                                <label for="input-officer-role" class="settings-label">
+                                    <span>Role</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="input-officer-role"
+                                    class="settings-input"
+                                    :value="userRole"
+                                    readonly
+                                    disabled
                                 >
                             </div>
 

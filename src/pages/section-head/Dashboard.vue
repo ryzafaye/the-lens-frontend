@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import SectionHeadLayout from '../../layouts/SectionHeadLayout.vue';
+import PendingApprovalTable from '../../components/PendingApprovalTable.vue';
 import {
     getSectionHeadDashboard,
     getSectionHeadActivityLogs,
@@ -10,14 +11,17 @@ import {
     returnSectionHeadArticleForRevision,
     resubmitArticle,
 } from '../../services/api.js';
-import { formatCleanArticleContent, cleanContentForEditing, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
+import { formatCleanArticleContent, sanitizeRichArticleHtml, isRevisionStatus, isArticleBodyModified } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import {
     formatActivityStatement,
     formatPhilippineDateTime,
     formatPhilippineRelativeTime,
 } from '../../utils/activityGrammar.js';
+import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
+import ArticleRichToolbar from '../../components/ArticleRichToolbar.vue';
+import { handleRichEditorKeydown, handleRichEditorPaste } from '../../utils/richEditor.js';
 import '../../assets/css/executive-review-articles.css';
 
 const router = useRouter();
@@ -160,9 +164,17 @@ function closeArticleViewer() {
 // --------------------------------------------------------------------------
 const isManuscriptModalOpen = ref(false);
 const activeManuscript = ref(null);
+const isEditingManuscript = ref(false);
 const revisionRemarks = ref('');
 const showRemarksSection = ref(false);
 const remarksError = ref('');
+
+function enableManuscriptEditing() {
+    isEditingManuscript.value = true;
+    nextTick(() => {
+        dashBodyRef.value?.focus();
+    });
+}
 
 // Remarks Modal state
 const isRemarksModalOpen = ref(false);
@@ -182,7 +194,7 @@ function closeRemarksModal() {
 
 function openManuscriptFromRemarks(article) {
     closeRemarksModal();
-    openManuscriptModal(article);
+    openManuscriptModal(article, true);
 }
 
 // Resubmit directly from table row
@@ -191,7 +203,7 @@ async function handleTableResubmit(article) {
 
     // Direct table row has not been edited yet
     showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
-    openManuscriptModal(article);
+    openManuscriptModal(article, true);
 }
 
 // Resubmit revised article from manuscript modal
@@ -203,7 +215,7 @@ async function handleManuscriptSubmit() {
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
     const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
     if (!isArticleBodyModified(activeManuscript.value.content, newContent)) {
         showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
@@ -245,8 +257,9 @@ const dashBodyRef = ref(null);
 
 
 
-function openManuscriptModal(article) {
+function openManuscriptModal(article, startEditing = false) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = Boolean(startEditing);
     revisionRemarks.value = '';
     showRemarksSection.value = false;
     remarksError.value = '';
@@ -268,12 +281,16 @@ function openManuscriptModal(article) {
         }
         if (dashBodyRef.value) {
             dashBodyRef.value.innerHTML = formatCleanArticleContent(article.content || article.excerpt);
+            if (startEditing) {
+                dashBodyRef.value.focus();
+            }
         }
     });
 }
 
 function openRevisionModal(article) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = false;
     revisionRemarks.value = '';
     showRemarksSection.value = true;
     remarksError.value = '';
@@ -314,6 +331,7 @@ function onDashHeadlineKeydown(e) {
 
 function closeManuscriptModal() {
     isManuscriptModalOpen.value = false;
+    isEditingManuscript.value = false;
     activeManuscript.value = null;
     showRemarksSection.value = false;
     remarksError.value = '';
@@ -368,7 +386,7 @@ async function handleSaveChanges() {
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
     const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
     if (!newTitle) {
         showToast('Please enter an article headline.', 'error');
@@ -407,6 +425,7 @@ async function handleSaveChanges() {
         activeManuscript.value.title = payload.title;
         activeManuscript.value.excerpt = payload.excerpt;
         activeManuscript.value.content = payload.content;
+        isEditingManuscript.value = false;
 
         showToast(res.message || 'Article changes saved successfully.', 'success');
     } catch (err) {
@@ -473,7 +492,7 @@ async function handleApproveForEic() {
         ? dashExcerptRef.value.innerText.trim()
         : (activeManuscript.value.excerpt || '');
     const rawBody = dashBodyRef.value ? dashBodyRef.value.innerHTML : (activeManuscript.value.content || '');
-    const newContent = cleanContentForEditing(rawBody);
+    const newContent = sanitizeRichArticleHtml(rawBody);
 
     if (!newTitle) {
         showToast('Please enter an article headline.', 'error');
@@ -587,8 +606,25 @@ async function loadDashboard(forceFresh = false) {
     }
 }
 
+const openActionMenuId = ref(null);
+function toggleActionMenu(id) {
+    openActionMenuId.value = openActionMenuId.value === id ? null : id;
+}
+function closeActionMenu() {
+    openActionMenuId.value = null;
+}
+
 onMounted(() => {
     loadDashboard(true);
+    if (typeof document !== 'undefined') {
+        document.addEventListener('click', closeActionMenu);
+    }
+});
+
+onUnmounted(() => {
+    if (typeof document !== 'undefined') {
+        document.removeEventListener('click', closeActionMenu);
+    }
 });
 </script>
 
@@ -597,7 +633,7 @@ onMounted(() => {
         <main class="content-container">
             <!-- Page Title Section (Exact match to executive/dashboard.blade.php) -->
             <div class="page-title-section animate-fade-in delay-1">
-                <h1 id="page-title-heading" class="page-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                <h1 id="page-title-heading" class="page-title">
                     {{ user.role || 'Section Head' }} Dashboard
                 </h1>
             </div>
@@ -640,7 +676,7 @@ onMounted(() => {
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="pending-approval-heading">
                         <div class="panel-header">
                             <div class="panel-title-group">
-                                <h2 id="pending-approval-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                                <h2 id="pending-approval-heading" class="panel-title">
                                     Pending Approval
                                 </h2>
                                 <span
@@ -653,119 +689,25 @@ onMounted(() => {
                             <router-link to="/section-head/review-articles" class="panel-action-link">View all &rarr;</router-link>
                         </div>
 
-                        <div class="table-responsive">
-                            <table class="data-table pending-approvals-table section-head-pending-table">
-                                <thead>
-                                    <tr>
-                                        <th class="col-title text-center" style="text-align: center !important;">Article Title</th>
-                                        <th class="col-date text-center" style="text-align: center !important;">Date</th>
-                                        <th class="col-actions text-center" style="text-align: center !important;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="art in topPendingArticles" :key="art.id">
-                                        <td class="col-title">
-                                            <div class="table-article-stack">
-                                                <button
-                                                    type="button"
-                                                    class="table-article-btn"
-                                                    @click="openManuscriptModal(art)"
-                                                    :title="`Review & Edit: ${art.title}`"
-                                                    style="font-family: 'Playfair Display', Georgia, serif !important; display: block; width: 100%; text-align: left; white-space: normal !important; word-break: break-word !important; overflow-wrap: break-word !important;"
-                                                >
-                                                    {{ art.title }}
-                                                </button>
-                                                <div class="table-article-author-row">
-                                                    <i class="fa-solid fa-pen-nib" aria-hidden="true"></i>
-                                                    <span>By <strong>{{ art.author || 'Author' }}</strong></span>
-                                                    <span v-if="isRevisionStatus(art.status)" class="badge-revision-pill" style="display: inline-flex; align-items: center; gap: 4px; background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; padding: 1px 6px; border-radius: 4px; font-size: 0.70rem; font-weight: 600; margin-left: 6px;">
-                                                        <i class="fa-solid fa-rotate-left"></i> For Revision
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td class="col-date text-center">
-                                            <span class="table-date">{{ art.date }}</span>
-                                        </td>
-                                        <td class="col-actions text-center">
-                                            <div class="table-actions-group" style="flex-wrap: wrap;">
-                                                <template v-if="isRevisionStatus(art.status)">
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-remarks"
-                                                        @click="openRemarksModal(art)"
-                                                        title="View revision remarks"
-                                                    >
-                                                        <i class="fa-solid fa-comment-dots"></i>
-                                                        <span>Remarks</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-edit"
-                                                        @click="openManuscriptModal(art)"
-                                                        title="Edit manuscript"
-                                                    >
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-submit"
-                                                        @click="handleTableResubmit(art)"
-                                                        :disabled="isSubmitting"
-                                                        title="Submit revised article"
-                                                    >
-                                                        <i class="fa-solid fa-paper-plane"></i>
-                                                        <span>Submit</span>
-                                                    </button>
-                                                </template>
-                                                <template v-else>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-edit"
-                                                        @click="openManuscriptModal(art)"
-                                                        title="Edit writer's manuscript"
-                                                    >
-                                                        <i class="fa-solid fa-pen-to-square"></i>
-                                                        <span>Edit</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-revision"
-                                                        @click="openRevisionModal(art)"
-                                                        title="Direct to revision remarks"
-                                                    >
-                                                        <i class="fa-solid fa-rotate-left"></i>
-                                                        <span>Revision</span>
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="btn-table-action btn-table-approve"
-                                                        @click="handleQuickApprove(art)"
-                                                        :disabled="isSubmitting"
-                                                        title="Approve manuscript for EIC"
-                                                    >
-                                                        <i class="fa-solid fa-check"></i>
-                                                        <span>Approve</span>
-                                                    </button>
-                                                </template>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr v-if="!isLoading && topPendingArticles.length === 0">
-                                        <td colspan="3" class="empty-state-cell" style="font-size: 0.88rem; color: #667085; text-align: center !important; padding: 36px 16px !important; border-bottom: none; background: transparent; width: 100% !important;">
-                                            No pending submissions for this section.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                        <PendingApprovalTable
+                            :articles="topPendingArticles"
+                            :is-loading="isLoading"
+                            :is-submitting="isSubmitting"
+                            :default-category="sectionCategory"
+                            empty-text="No pending submissions for this section."
+                            @open-manuscript="openManuscriptModal($event, false)"
+                            @edit-manuscript="openManuscriptModal($event, true)"
+                            @approve="handleQuickApprove"
+                            @revision="openRevisionModal"
+                            @resubmit="handleTableResubmit"
+                            @remarks="openRemarksModal"
+                        />
                     </section>
 
                     <!-- Activity Log Section (Synced with ActivityLogs.vue & Blade executive-activity-logs format) -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="activity-log-heading">
                         <div class="panel-header">
-                            <h2 id="activity-log-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="activity-log-heading" class="panel-title">
                                 Activity Log
                             </h2>
                             <router-link to="/section-head/activity-logs" class="panel-action-link">View all &rarr;</router-link>
@@ -788,14 +730,13 @@ onMounted(() => {
                                             <strong class="causer-name-token" style="color: #101828; font-weight: 600; margin-right: 4px;">{{ getStatement(act).causer }}</strong>
                                             <span>{{ getStatement(act).beforeSubject }}</span>
                                             <template v-if="getStatement(act).subjectName">
-                                                <em style="font-family: 'Playfair Display', Georgia, serif !important; font-style: normal; font-weight: 600; color: #101828; margin: 0 4px;">
+                                                <em>
                                                     "{{ getStatement(act).subjectName }}"
                                                 </em>
                                             </template>
                                             <span v-if="getStatement(act).afterSubject" :style="{ marginLeft: getStatement(act).subjectName ? '0px' : '4px' }">
                                                 {{ getStatement(act).afterSubject }}
                                             </span>
-                                            <span style="color: #667085; font-size: 0.75rem; margin-left: 4px;">{{ getTimestampText(act) }}.</span>
                                         </p>
                                         <div class="activity-meta-subrow" style="font-size: 0.72rem; color: #98a2b3; margin-top: 3px; display: flex; align-items: center; gap: 6px;">
                                             <span style="font-weight: 500; color: #475467;">{{ getCauserRole(act) }}</span>
@@ -808,7 +749,7 @@ onMounted(() => {
                             </div>
                             <div v-if="!isLoading && top5Activities.length === 0" class="activity-empty-state-mini">
                                 <i class="fa-solid fa-clock-rotate-left"></i>
-                                <h4 style="font-family: 'Playfair Display', Georgia, serif !important;">No activity logs recorded</h4>
+                                <h4>No activity logs recorded</h4>
                                 <p>Editorial and system activities will appear here as they occur.</p>
                             </div>
                         </div>
@@ -820,7 +761,7 @@ onMounted(() => {
                     <!-- Most Viewed Articles -->
                     <section class="card-panel animate-fade-in delay-2" aria-labelledby="most-viewed-heading">
                         <div class="panel-header">
-                            <h2 id="most-viewed-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                            <h2 id="most-viewed-heading" class="panel-title">
                                 Most Viewed Articles
                             </h2>
                             <span id="most-viewed-month-badge" class="panel-badge">{{ currentMonth }}</span>
@@ -835,12 +776,11 @@ onMounted(() => {
                             >
                                 <span class="rank-number" :class="{ 'top-rank': idx === 0 }">{{ idx + 1 }}</span>
                                 <div class="ranked-content">
-                                    <div class="ranked-category-tag">{{ art.category || sectionCategory }}</div>
+                                    <div class="ranked-category-tag">{{ formatCategoryDisplay(art.category || sectionCategory) }}</div>
                                     <button
                                         type="button"
                                         class="ranked-title-btn"
                                         :title="art.title"
-                                        style="font-family: 'Playfair Display', Georgia, serif !important;"
                                     >
                                         {{ art.title }}
                                     </button>
@@ -867,8 +807,8 @@ onMounted(() => {
                     <!-- Top Performing Journalists Leaderboard (Strictly Published Articles Only) -->
                     <section class="card-panel animate-fade-in delay-3" aria-labelledby="top-journalists-heading">
                         <div class="panel-header">
-                            <h2 id="top-journalists-heading" class="panel-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
-                                Top Performing Journalists
+                            <h2 id="top-journalists-heading" class="panel-title">
+                                Top Journalists
                             </h2>
                             <span class="panel-badge">Leaderboard</span>
                         </div>
@@ -876,8 +816,8 @@ onMounted(() => {
                             <table class="journalists-table">
                                 <thead>
                                     <tr>
-                                        <th class="col-author" style="text-align: center !important;">Author</th>
-                                        <th class="col-article-count" style="text-align: center !important;">Article Count</th>
+                                        <th class="col-author text-left" style="text-align: left !important;">Author</th>
+                                        <th class="col-article-count text-center" style="text-align: center !important;">Articles</th>
                                     </tr>
                                 </thead>
                                 <tbody id="top-journalists-table-body">
@@ -931,7 +871,7 @@ onMounted(() => {
                 </div>
 
                 <div class="viewer-modal-body">
-                    <h1 id="viewer-title" class="viewer-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                    <h1 id="viewer-title" class="viewer-title">
                         {{ activeArticle.title }}
                     </h1>
                     <div class="viewer-byline-row">
@@ -978,17 +918,16 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Body: Direct In-Place Editable Manuscript (Exact Blade Parity & Flawless Spacing) -->
+                <!-- Modal Body: View first, Editable when Edit is clicked -->
                 <div class="manuscript-body">
                     <h2
                         ref="dashHeadlineRef"
                         id="modal-headline"
                         class="manuscript-headline"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
-                        style="font-family: 'Playfair Display', Georgia, serif !important;"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         @keydown="onDashHeadlineKeydown"
                     ></h2>
 
@@ -1015,22 +954,27 @@ onMounted(() => {
                         ref="dashExcerptRef"
                         id="modal-excerpt"
                         class="viewer-excerpt"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         style="display: none;"
                     ></p>
+
+                    <!-- Formatting Toolbar (Shown only when Edit is active) -->
+                    <ArticleRichToolbar v-if="isEditingManuscript" :target="dashBodyRef" sticky-top="0px" />
 
                     <!-- Story Body Content -->
                     <div
                         ref="dashBodyRef"
                         id="modal-body"
-                        class="manuscript-text-content"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        class="manuscript-text-content rich-editable-surface"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
+                        @keydown="(e) => isEditingManuscript && handleRichEditorKeydown(e, dashBodyRef)"
+                        @paste="(e) => isEditingManuscript && handleRichEditorPaste(e)"
                     ></div>
 
                     <!-- Mandatory Revision Remarks Box (Exact ReviewArticles parity) -->
@@ -1066,6 +1010,19 @@ onMounted(() => {
                 <div class="manuscript-footer">
                     <template v-if="isRevisionStatus(activeManuscript.status)">
                         <button
+                            v-if="!isEditingManuscript"
+                            type="button"
+                            id="modal-edit-btn"
+                            class="btn-box-save"
+                            :disabled="isSubmitting"
+                            @click="enableManuscriptEditing"
+                            title="Edit manuscript"
+                        >
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            v-else
                             type="button"
                             id="modal-save-btn"
                             class="btn-box-save"
@@ -1091,6 +1048,19 @@ onMounted(() => {
                     </template>
                     <template v-else>
                         <button
+                            v-if="!isEditingManuscript"
+                            type="button"
+                            id="modal-edit-btn"
+                            class="btn-box-save"
+                            :disabled="isSubmitting"
+                            @click="enableManuscriptEditing"
+                            title="Edit headline, excerpt, and article body"
+                        >
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            v-else
                             type="button"
                             id="modal-save-btn"
                             class="btn-box-save btn-save-maroon"
@@ -1142,7 +1112,7 @@ onMounted(() => {
                 <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eaecf0; background: #ffffff;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <i class="fa-solid fa-comment-dots" style="color: #5c0a18; font-size: 1.1rem;"></i>
-                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #101828; ">
                             Revision Remarks
                         </h3>
                     </div>
@@ -1152,7 +1122,7 @@ onMounted(() => {
                 </div>
                 <div class="modal-body" style="padding: 20px; background: #ffffff;">
                     <div style="margin-bottom: 14px;">
-                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; font-family: 'Playfair Display', Georgia, serif;">
+                        <h4 style="margin: 0 0 4px; font-size: 0.95rem; font-weight: 600; color: #101828; ">
                             {{ activeRemarksArticle.title }}
                         </h4>
                         <div style="font-size: 0.8rem; color: #475467;">

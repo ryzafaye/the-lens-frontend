@@ -22,7 +22,7 @@
 
 .profile-title-wrap h1,
 .profile-title-wrap .page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.85rem;
     font-weight: 700;
     color: #101828;
@@ -243,6 +243,26 @@
     font-size: 0.74rem;
     color: #667085;
     margin: 0;
+}
+
+.settings-input.is-invalid {
+    border-color: #d92d20;
+    background-color: #fffbfa;
+}
+
+.settings-input.is-invalid:focus {
+    border-color: #d92d20;
+    box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.12);
+}
+
+.settings-field-error {
+    margin: 4px 0 0;
+    font-size: 0.76rem;
+    font-weight: 500;
+    color: #b42318;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 /* Password Input with Show/Hide Eye Toggle */

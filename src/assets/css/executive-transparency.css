@@ -41,7 +41,7 @@
 }
 
 .transparency-page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 2rem;
     font-weight: 800;
     color: var(--fin-text-primary);

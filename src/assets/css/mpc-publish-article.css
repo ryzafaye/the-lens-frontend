@@ -426,7 +426,7 @@
 }
 
 .mpc-article-headline {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.22rem;
     font-weight: 700;
     color: #101828;
@@ -666,7 +666,7 @@
     font-size: 1.15rem;
     font-weight: 700;
     color: #101828;
-    font-family: var(--font-heading, 'Playfair Display', serif);
+    font-family: var(--font-heading, 'Merriweather', serif);
 }
 
 .mpc-modal-sub {
@@ -1033,7 +1033,7 @@
 
 .manuscript-prose h2,
 .manuscript-prose h3 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     color: #101828;
     margin-top: 20px;
     margin-bottom: 8px;

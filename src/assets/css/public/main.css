@@ -95,3 +95,44 @@ button.article-title-button:hover {
     text-decoration-thickness: 1.5px !important;
     text-underline-offset: 4px !important;
 }
+
+/* =====================================================
+   PUBLIC SITE HEADLINE TYPOGRAPHY: MERRIWEATHER
+   Clean weight & exact readable spacing
+   ===================================================== */
+.public-site-shell,
+.article-reader-fullscreen {
+    --heading-font: 'Merriweather', Georgia, serif;
+}
+
+.public-site-shell h1,
+.public-site-shell h2,
+.public-site-shell h3,
+.public-site-shell .font-display,
+.public-site-shell .featured-title,
+.public-site-shell .latest-title,
+.public-site-shell .story-card-title,
+.public-site-shell .category-card-title,
+.public-site-shell .category-list-title,
+.public-site-shell .section-heading h2,
+.public-site-shell .section-label,
+.public-site-shell .page-intro h1,
+.public-site-shell .article-title-button,
+.public-site-shell .author-dossier-name,
+.public-site-shell .byline-main-title,
+.public-site-shell .author-story-title,
+.public-site-shell .author-empty-title,
+.public-site-shell .archive-item h3,
+.article-reader-fullscreen h1,
+.article-reader-fullscreen h2,
+.article-reader-fullscreen h3,
+.article-reader-fullscreen .font-display,
+.article-reader-fullscreen .modal-title,
+.article-reader-fullscreen .continue-reading-heading h2,
+.article-reader-fullscreen .continue-story-copy h3,
+.article-reader-fullscreen .continue-story-title {
+    font-family: 'Merriweather', Georgia, serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 0em !important;
+    line-height: 1.25 !important;
+}

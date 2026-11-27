@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import EicLayout from '../../layouts/EicLayout.vue';
-import { getEicFeedback } from '../../services/api.js';
+import { getEicFeedback, markEicFeedbackRead } from '../../services/api.js';
 import '../../assets/css/shared-feedback-inbox.css';
 
 // State
@@ -11,10 +11,23 @@ const currentTab = ref('all'); // 'all' or 'unread'
 const currentSort = ref('newest'); // 'newest' or 'oldest'
 const searchQuery = ref('');
 const activeMessageId = ref(null);
+const mobileViewingMessage = ref(false);
 
 // Badges
 const countAll = computed(() => feedbackList.value.length);
 const countUnread = computed(() => feedbackList.value.filter(f => !f.isRead).length);
+
+// Helper for Initials
+function getInitials(name) {
+    if (!name) return '';
+    return name
+        .trim()
+        .split(/\s+/)
+        .map(n => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+}
 
 // Filtered List
 const filteredList = computed(() => {
@@ -25,9 +38,10 @@ const filteredList = computed(() => {
 
         if (q) {
             const nameStr = (item.name || 'Anonymous Reader').toLowerCase();
+            const emailStr = (item.email || '').toLowerCase();
             const subjStr = (item.subject || '').toLowerCase();
             const msgStr = (item.message || '').toLowerCase();
-            return nameStr.includes(q) || subjStr.includes(q) || msgStr.includes(q);
+            return nameStr.includes(q) || emailStr.includes(q) || subjStr.includes(q) || msgStr.includes(q);
         }
 
         return true;
@@ -46,9 +60,17 @@ const activeMessage = computed(() => {
     return filteredList.value.find(f => f.id === activeMessageId.value) || filteredList.value[0];
 });
 
-function selectMessage(item) {
+async function selectMessage(item) {
     activeMessageId.value = item.id;
-    item.isRead = true;
+    mobileViewingMessage.value = true;
+    if (!item.isRead) {
+        item.isRead = true;
+        try {
+            await markEicFeedbackRead(item.id);
+        } catch (err) {
+            console.warn('Failed to mark feedback as read:', err);
+        }
+    }
 }
 
 // Load Feedback
@@ -99,7 +121,7 @@ onMounted(() => {
                             <i class="fa-regular fa-envelope-open"></i>
                         </div>
                         <h2 class="feedback-empty-heading">No feedback messages yet</h2>
-                        <p class="feedback-empty-text" style="color: #667085; font-size: 0.9rem; margin-top: 6px;">Reader responses and contact form submissions will appear here.</p>
+                        <p class="feedback-empty-description">Reader responses and contact form submissions will appear here.</p>
                     </div>
                 </div>
 
@@ -174,11 +196,12 @@ onMounted(() => {
                     </div>
 
                     <!-- Master-Detail Split Grid -->
-                    <div class="inbox-split-grid">
+                    <div class="inbox-split-grid" :class="{ 'mobile-viewing-message': mobileViewingMessage }">
                         <!-- Left: Scrollable Message List -->
                         <div class="inbox-list-pane">
                             <div class="inbox-list-header">
                                 <span>All Submissions</span>
+                                <span class="inbox-list-count">{{ filteredList.length }} {{ filteredList.length === 1 ? 'message' : 'messages' }}</span>
                             </div>
 
                             <div v-if="filteredList.length === 0" class="inbox-empty-box">
@@ -199,45 +222,73 @@ onMounted(() => {
                                         <div class="item-sender-wrap">
                                             <div class="item-sender-avatar" :class="{ anonymous: !item.name }">
                                                 <i v-if="!item.name" class="fa-regular fa-user"></i>
-                                                <span v-else>{{ item.name.split(' ').map(n => n[0]).join('').substring(0, 2) }}</span>
+                                                <span v-else>{{ getInitials(item.name) }}</span>
                                             </div>
                                             <span class="item-sender-name">{{ item.name || 'Anonymous Reader' }}</span>
                                             <span v-if="!item.name" class="item-anon-badge">Anon</span>
                                         </div>
                                         <span class="item-time">{{ item.date || 'Recent' }}</span>
                                     </div>
-                                    <div class="item-subject-text">{{ item.subject || 'Reader Feedback' }}</div>
-                                    <div class="item-preview-text">{{ item.message }}</div>
+                                    <div class="item-subject">{{ item.subject || 'Reader Feedback' }}</div>
+                                    <div class="item-snippet">{{ item.message }}</div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Right: Reading Detail Pane -->
                         <div class="inbox-detail-pane" aria-live="polite">
-                            <div v-if="!activeMessage" class="inbox-empty-box" style="padding-top: 80px;">
-                                <i class="fa-regular fa-envelope"></i>
-                                <p style="font-size: 0.9rem; font-weight: 600; color: #475467;">Select a message to view details</p>
+                            <button
+                                type="button"
+                                class="btn-back-to-list"
+                                @click="mobileViewingMessage = false"
+                            >
+                                <i class="fa-solid fa-arrow-left"></i>
+                                <span>Back to list</span>
+                            </button>
+
+                            <div v-if="!activeMessage" class="detail-placeholder">
+                                <i class="fa-regular fa-envelope-open"></i>
+                                <p style="font-size: 0.95rem; font-weight: 600; color: #475467; margin-bottom: 4px;">Select a message to view details</p>
+                                <p style="font-size: 0.82rem; color: #98a2b3; margin: 0;">Choose any feedback submission from the left list.</p>
                             </div>
-                            <div v-else class="detail-reading-container">
-                                <div class="detail-header-card">
-                                    <div class="detail-header-top">
-                                        <h2 class="detail-subject-title">{{ activeMessage.subject || 'Reader Feedback' }}</h2>
-                                    </div>
-                                    <div class="detail-meta-row">
+                            <template v-else>
+                                <div class="detail-header">
+                                    <h2 class="detail-subject-title">{{ activeMessage.subject || 'Reader Feedback' }}</h2>
+                                    <div class="detail-sender-row">
                                         <div class="detail-sender-info">
-                                            <strong>{{ activeMessage.name || 'Anonymous Reader' }}</strong>
-                                            <span v-if="activeMessage.email" class="detail-sender-email">&lt;{{ activeMessage.email }}&gt;</span>
+                                            <div class="detail-avatar-large" :class="{ anonymous: !activeMessage.name }">
+                                                <i v-if="!activeMessage.name" class="fa-regular fa-user"></i>
+                                                <span v-else>{{ getInitials(activeMessage.name) }}</span>
+                                            </div>
+                                            <div class="detail-sender-names">
+                                                <div class="detail-name-text">
+                                                    {{ activeMessage.name || 'Anonymous Reader' }}
+                                                    <span v-if="!activeMessage.name" class="item-anon-badge" style="margin-left: 6px;">Anon</span>
+                                                </div>
+                                                <div class="detail-meta-text">
+                                                    <span v-if="activeMessage.email">{{ activeMessage.email }} &bull; </span>
+                                                    <span>{{ activeMessage.fullDate || activeMessage.date || 'Recent' }}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="detail-date-badge">{{ activeMessage.fullDate || activeMessage.date }}</div>
+                                        <div class="detail-actions-group">
+                                            <span class="detail-read-status" :class="activeMessage.isRead ? 'status-read' : 'status-unread'">
+                                                <i :class="activeMessage.isRead ? 'fa-regular fa-envelope-open' : 'fa-solid fa-envelope'"></i>
+                                                {{ activeMessage.isRead ? 'Read' : 'New' }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="detail-body-card">
-                                    <div class="detail-message-content">
-                                        {{ activeMessage.message }}
-                                    </div>
+                                <div class="detail-message-body">
+                                    <p style="white-space: pre-wrap; font-family: inherit; margin: 0;">{{ activeMessage.message }}</p>
                                 </div>
-                            </div>
+
+                                <div class="detail-footer-note">
+                                    <span>Official Publication Feedback &bull; The Lens Portal</span>
+                                    <span v-if="activeMessage.email">Reply to: <a :href="'mailto:' + activeMessage.email" style="color: var(--sidebar-maroon, #5c0a18); text-decoration: underline;">{{ activeMessage.email }}</a></span>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>

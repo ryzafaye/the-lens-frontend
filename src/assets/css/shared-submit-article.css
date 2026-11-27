@@ -40,7 +40,7 @@
 }
 
 .page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary, #101828);
@@ -242,7 +242,7 @@
     border: none;
     outline: none;
     background: transparent;
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.35rem;
     font-weight: 700;
     color: #101828;
@@ -631,7 +631,7 @@
 }
 
 .rich-editor-content h2 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.45rem;
     font-weight: 700;
     color: #101828;
@@ -640,7 +640,7 @@
 }
 
 .rich-editor-content h3 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.25rem;
     font-weight: 700;
     color: #1f2937;
@@ -1014,7 +1014,7 @@
 }
 
 .draft-box-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.05rem;
     font-weight: 700;
     color: #101828;
@@ -1271,7 +1271,7 @@
     }
 
     .draft-box-title {
-        font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+        font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
         font-size: 0.96rem;
     }
 

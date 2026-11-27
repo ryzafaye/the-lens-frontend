@@ -5,6 +5,7 @@ import WriterLayout from '../../layouts/WriterLayout.vue';
 import { getWriterDashboard } from '../../services/api.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import { formatCleanArticleContent } from '../../utils/articleContent.js';
+import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
 
 const router = useRouter();
 
@@ -186,7 +187,7 @@ onMounted(async () => {
                         >
                             <div class="article-card-header">
                                 <div class="article-card-meta">
-                                    <span class="article-card-category">{{ art.category }}</span>
+                                    <span class="article-card-category">{{ formatCategoryDisplay(art.category) }}</span>
                                     <span class="meta-dot">&bull;</span>
                                     <span class="article-card-date">
                                         <i class="fa-regular fa-calendar"></i> {{ art.date }}
@@ -249,7 +250,7 @@ onMounted(async () => {
                             >
                                 <span class="rank-number" :class="{ 'top-rank': index === 0 }">{{ index + 1 }}</span>
                                 <div class="ranked-content">
-                                    <div class="ranked-category-tag">{{ topArt.category }}</div>
+                                    <div class="ranked-category-tag">{{ formatCategoryDisplay(topArt.category) }}</div>
                                     <button
                                         type="button"
                                         class="ranked-title-btn"
@@ -296,7 +297,7 @@ onMounted(async () => {
             <div class="modal-card viewer-modal-card">
                 <div class="viewer-modal-header">
                     <div class="viewer-meta-row">
-                        <span id="viewer-category" class="viewer-category-tag">{{ activeArticle.category }}</span>
+                        <span id="viewer-category" class="viewer-category-tag">{{ formatCategoryDisplay(activeArticle.category) }}</span>
                         <span class="viewer-dot">·</span>
                         <span id="viewer-date" class="viewer-date">{{ activeArticle.date }}</span>
                     </div>

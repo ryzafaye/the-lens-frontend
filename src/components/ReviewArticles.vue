@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import EicLayout from '../layouts/EicLayout.vue';
 import ExecutiveLayout from '../layouts/ExecutiveLayout.vue';
 import SectionHeadLayout from '../layouts/SectionHeadLayout.vue';
+import { formatCategoryDisplay } from '../utils/categoryFormat.js';
 import {
     getSectionHeadReviewArticles,
     updateSectionHeadReviewArticle,
@@ -21,6 +22,8 @@ import {
 import { formatCleanArticleContent, cleanContentForEditing, sanitizeRichArticleHtml } from '../utils/articleContent.js';
 import { currentUser, useAuthStore } from '../stores/auth.js';
 import { confirmAction, showToast as globalShowToast } from '../utils/modal.js';
+import ArticleRichToolbar from './ArticleRichToolbar.vue';
+import { handleRichEditorKeydown, handleRichEditorPaste } from '../utils/richEditor.js';
 import '../assets/css/executive-review-articles.css';
 import '../assets/css/shared-manage-my-articles.css';
 
@@ -98,9 +101,17 @@ function showToast(message, type = 'success') {
 // Manuscript Modal State
 const isModalOpen = ref(false);
 const activeManuscript = ref(null);
+const isEditingManuscript = ref(false);
 const revisionRemarks = ref('');
 const showRemarksSection = ref(false);
 const remarksError = ref('');
+
+function enableManuscriptEditing() {
+    isEditingManuscript.value = true;
+    nextTick(() => {
+        bodyRef.value?.focus();
+    });
+}
 
 // Remarks Modal State (Exact Writer Role Parity)
 const isRemarksModalOpen = ref(false);
@@ -121,7 +132,7 @@ function editFromRemarks() {
     const art = remarksArticle.value;
     closeRemarksModal();
     if (art) {
-        openManuscriptModal(art);
+        openManuscriptModal(art, true);
     }
 }
 
@@ -262,8 +273,9 @@ const emptyQueueDescription = computed(() => {
 });
 
 // Open Manuscript Modal
-function openManuscriptModal(article) {
+function openManuscriptModal(article, startEditing = false) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = Boolean(startEditing);
     showRemarksSection.value = false;
     remarksError.value = '';
     revisionRemarks.value = '';
@@ -283,6 +295,9 @@ function openManuscriptModal(article) {
         }
         if (bodyRef.value) {
             bodyRef.value.innerHTML = formatCleanArticleContent(article.content || article.excerpt);
+            if (startEditing) {
+                bodyRef.value.focus();
+            }
         }
     });
 }
@@ -290,6 +305,7 @@ function openManuscriptModal(article) {
 // Open Revision Drawer Directly
 function openRevisionDirectly(article) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = false;
     showRemarksSection.value = true;
     remarksError.value = '';
     revisionRemarks.value = '';
@@ -339,6 +355,7 @@ function onHeadlineKeydown(e) {
 
 function closeManuscriptModal() {
     isModalOpen.value = false;
+    isEditingManuscript.value = false;
     activeManuscript.value = null;
     showRemarksSection.value = false;
     remarksError.value = '';
@@ -499,6 +516,7 @@ async function handleSaveChanges() {
         activeManuscript.value.title = payload.title;
         activeManuscript.value.excerpt = payload.excerpt;
         activeManuscript.value.content = payload.content;
+        isEditingManuscript.value = false;
 
         showToast(res?.message || 'Article changes saved successfully.', 'success');
     } catch (err) {
@@ -756,7 +774,7 @@ onMounted(() => {
                 <div style="width: 54px; height: 54px; border-radius: 50%; background: #fef3f2; color: #b42318; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; font-size: 1.4rem;">
                     <i class="fa-solid fa-lock"></i>
                 </div>
-                <h2 style="font-family: 'Playfair Display', Georgia, serif; font-size: 1.5rem; font-weight: 700; color: #101828; margin: 0 0 10px;">
+                <h2>
                     Restricted Review Access
                 </h2>
                 <p style="font-size: 0.95rem; color: #667085; line-height: 1.6; margin: 0 0 24px;">
@@ -873,7 +891,7 @@ onMounted(() => {
                         <!-- Left Stack: Meta Line, Bold Article Title, Author with Pen Nib Icon -->
                         <div class="review-box-content">
                             <div class="review-box-meta">
-                                <span class="review-box-category">{{ item.category }}</span>
+                                <span class="review-box-category">{{ formatCategoryDisplay(item.category) }}</span>
                                 <span class="review-box-date">
                                     <i class="fa-regular fa-calendar" aria-hidden="true"></i>
                                     {{ item.date }}
@@ -883,7 +901,6 @@ onMounted(() => {
                             <button
                                 type="button"
                                 class="review-box-title"
-                                style="font-family: 'Playfair Display', Georgia, serif !important;"
                                 @click="openManuscriptModal(item)"
                                 :title="item.title"
                             >
@@ -901,7 +918,7 @@ onMounted(() => {
                             <button
                                 type="button"
                                 class="btn-box-read btn-box-edit"
-                                @click="openManuscriptModal(item)"
+                                @click="openManuscriptModal(item, true)"
                                 title="Edit writer's manuscript"
                             >
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -938,7 +955,7 @@ onMounted(() => {
                     <div class="empty-queue-icon-wrapper">
                         <i class="fa-solid fa-file-circle-check"></i>
                     </div>
-                    <h3 class="empty-queue-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                    <h3 class="empty-queue-title">
                         Review Queue is Clear
                     </h3>
                     <p class="empty-queue-description" style="text-align: center !important;">
@@ -970,7 +987,7 @@ onMounted(() => {
                         >
                             <div class="review-box-content">
                                 <div class="review-box-meta">
-                                    <span class="review-box-category">{{ item.category }}</span>
+                                    <span class="review-box-category">{{ formatCategoryDisplay(item.category) }}</span>
                                     <span class="meta-dot">&bull;</span>
                                     <span
                                         class="btn-show-remarks"
@@ -990,7 +1007,6 @@ onMounted(() => {
                                 <button
                                     type="button"
                                     class="review-box-title"
-                                    style="font-family: 'Playfair Display', Georgia, serif !important;"
                                     @click="openManuscriptModal(item)"
                                     :title="item.title"
                                 >
@@ -1007,7 +1023,7 @@ onMounted(() => {
                                 <button
                                     type="button"
                                     class="btn-box-read btn-box-edit"
-                                    @click="openManuscriptModal(item)"
+                                    @click="openManuscriptModal(item, true)"
                                     title="Edit writer's manuscript"
                                 >
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -1044,7 +1060,7 @@ onMounted(() => {
                         <div class="empty-queue-icon-wrapper">
                             <i class="fa-solid fa-rotate-left"></i>
                         </div>
-                        <h3 class="empty-queue-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                        <h3 class="empty-queue-title">
                             No Articles For Revision
                         </h3>
                         <p class="empty-queue-description">
@@ -1081,7 +1097,7 @@ onMounted(() => {
                 <!-- Modal Header -->
                 <div class="manuscript-header">
                     <div class="manuscript-header-left">
-                        <span id="modal-section" class="review-box-category">{{ activeManuscript.category }}</span>
+                        <span id="modal-section" class="review-box-category">{{ formatCategoryDisplay(activeManuscript.category) }}</span>
                         <span>&bull;</span>
                         <span id="modal-date" class="review-box-date">{{ activeManuscript.date }}</span>
                     </div>
@@ -1098,17 +1114,16 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Body: Direct In-Place Editable Manuscript -->
+                <!-- Modal Body: View first, Editable when Edit is clicked -->
                 <div class="manuscript-body">
                     <h2
                         ref="headlineRef"
                         id="modal-headline"
                         class="manuscript-headline"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
-                        style="font-family: 'Playfair Display', Georgia, serif !important;"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         @keydown="onHeadlineKeydown"
                     ></h2>
 
@@ -1135,22 +1150,27 @@ onMounted(() => {
                         ref="excerptRef"
                         id="modal-excerpt"
                         class="viewer-excerpt"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         style="display: none;"
                     ></p>
+
+                    <!-- Formatting Toolbar (Shown only when Edit is active) -->
+                    <ArticleRichToolbar v-if="isEditingManuscript" :target="bodyRef" sticky-top="0px" />
 
                     <!-- Clean In-Place Body Content -->
                     <div
                         ref="bodyRef"
                         id="modal-body"
-                        class="manuscript-body-text article-body-streamlined"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        class="manuscript-body-text article-body-streamlined rich-editable-surface"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
+                        @keydown="(e) => isEditingManuscript && handleRichEditorKeydown(e, bodyRef)"
+                        @paste="(e) => isEditingManuscript && handleRichEditorPaste(e)"
                     ></div>
 
                     <!-- Mandatory Revision Remarks Box -->
@@ -1182,9 +1202,23 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Footer (Clean Standard Layout: Save Changes, Return for Revision, Approve for EIC) -->
+                <!-- Modal Footer (Edit -> Save Changes, Return for Revision, Approve for EIC) -->
                 <div class="manuscript-footer">
                     <button
+                        v-if="!isEditingManuscript"
+                        type="button"
+                        id="modal-edit-btn"
+                        class="btn-box-save"
+                        @click="enableManuscriptEditing"
+                        :disabled="isSubmitting"
+                        title="Edit headline, excerpt, and article body"
+                    >
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit</span>
+                    </button>
+
+                    <button
+                        v-else
                         type="button"
                         id="modal-save-btn"
                         class="btn-box-save"

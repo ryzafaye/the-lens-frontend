@@ -714,7 +714,7 @@
 
 .table-article-stack .table-article-btn,
 .table-article-btn {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 0.96rem;
     font-weight: 700;
     color: var(--text-primary, #101828);
@@ -865,21 +865,21 @@
 .ranked-title,
 .viewer-title,
 .manuscript-headline {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
 }
 
 /* Mobile Responsiveness for 3-Column Pending Approvals Table */
 @media (max-width: 768px) {
     .section-head-pending-table th.col-title,
     .section-head-pending-table th:first-child,
-    .pending-approvals-table th:first-child {
+    .pending-approvals-table:not(.unified-pending-table) th:first-child {
         width: 54% !important;
         text-align: center !important;
     }
 
     .section-head-pending-table td.col-title,
     .section-head-pending-table td:first-child,
-    .pending-approvals-table td:first-child {
+    .pending-approvals-table:not(.unified-pending-table) td:first-child {
         width: 54% !important;
         padding-left: 8px !important;
         padding-right: 6px !important;
@@ -890,8 +890,8 @@
     .section-head-pending-table td.col-date,
     .section-head-pending-table th:nth-child(2),
     .section-head-pending-table td:nth-child(2),
-    .pending-approvals-table th:nth-child(2),
-    .pending-approvals-table td:nth-child(2) {
+    .pending-approvals-table:not(.unified-pending-table) th:nth-child(2),
+    .pending-approvals-table:not(.unified-pending-table) td:nth-child(2) {
         width: 18% !important;
         padding-left: 2px !important;
         padding-right: 2px !important;
@@ -903,8 +903,8 @@
     .section-head-pending-table td.col-actions,
     .section-head-pending-table th:nth-child(3),
     .section-head-pending-table td:nth-child(3),
-    .pending-approvals-table th:nth-child(3),
-    .pending-approvals-table td:nth-child(3) {
+    .pending-approvals-table:not(.unified-pending-table) th:nth-child(3),
+    .pending-approvals-table:not(.unified-pending-table) td:nth-child(3) {
         width: 28% !important;
         padding-right: 8px !important;
         padding-left: 2px !important;

@@ -493,10 +493,10 @@ function executeDelete() {
                         <table v-if="filteredRecords.length > 0" class="transparency-table">
                             <thead>
                                 <tr>
-                                    <th scope="col" style="width: 50%;">Record & Document Title</th>
-                                    <th scope="col" style="width: 25%;">Uploaded By</th>
-                                    <th scope="col" style="width: 15%;">Date Uploaded</th>
-                                    <th scope="col" style="width: 10%; text-align: right;">Actions</th>
+                                    <th scope="col" style="width: 50%; text-align: left !important;">Record & Document Title</th>
+                                    <th scope="col" style="width: 25%; text-align: center !important;">Uploaded By</th>
+                                    <th scope="col" style="width: 15%; text-align: center !important;">Date Uploaded</th>
+                                    <th scope="col" style="width: 10%; text-align: center !important;">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>

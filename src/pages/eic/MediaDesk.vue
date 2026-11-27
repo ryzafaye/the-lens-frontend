@@ -336,6 +336,9 @@ onMounted(() => {
 
                     <!-- Card Body -->
                     <div class="cover-card-body" style="padding: 14px 16px;">
+                        <h4 :title="cleanTitle(item)" style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0; font-family: 'DM Sans', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ cleanTitle(item) }}
+                        </h4>
                         <div class="media-card-meta" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #475467;">
                             <span style="white-space: nowrap;"><i class="fa-regular fa-calendar"></i> {{ item.date || 'Recent' }}</span>
                             <span style="white-space: nowrap;">
@@ -417,6 +420,9 @@ onMounted(() => {
                     </div>
 
                     <div style="margin-top: 14px;">
+                        <h3 style="font-size: 1.12rem; font-weight: 700; color: #1e293b; margin: 0 0 8px 0; font-family: 'DM Sans', sans-serif; word-break: break-word;">
+                            {{ cleanTitle(activeInspectItem) }}
+                        </h3>
                         <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #64748b;">
                             <span style="white-space: nowrap;"><i class="fa-regular fa-calendar" style="margin-right: 6px;"></i> {{ activeInspectItem?.date || activeInspectItem?.formattedDate || 'Recent' }}</span>
                             <span style="white-space: nowrap;">

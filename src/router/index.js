@@ -58,6 +58,18 @@ const routes = [
         component: () => import('../pages/Login.vue'),
         meta: { guestOnly: true },
     },
+    {
+        path: '/forgot-password',
+        name: 'forgot-password',
+        component: () => import('../pages/ForgotPassword.vue'),
+        meta: { guestOnly: true },
+    },
+    {
+        path: '/reset-password',
+        name: 'reset-password',
+        component: () => import('../pages/ResetPassword.vue'),
+        meta: { guestOnly: true },
+    },
 
     // Writer Portal Routes
     {

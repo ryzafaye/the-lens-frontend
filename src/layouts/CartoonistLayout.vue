@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { currentUser, setAuthUser, clearAuthUser, useAuthStore } from '../stores/auth.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../utils/image.js';
+import { useSidebarPendingCounts } from '../composables/useSidebarPendingCounts.js';
 import LogoutModal from '../components/LogoutModal.vue';
 const logoImg = '/images/logo.jpg';
 import '../assets/css/executive-dashboard.css';
@@ -23,6 +24,8 @@ const isSectionHead = computed(() => {
     const roleName = String(user.value?.role || user.value?.role_name || currentUser.role || '').toLowerCase();
     return roleName.includes('head') || roleName.includes('chief');
 });
+
+const { pendingCounts } = useSidebarPendingCounts('cartoonist', isSectionHead);
 
 function resolveAvatarUrl(url) {
     return resolveUserAvatar(url || user);
@@ -221,6 +224,14 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-table-cells-large"></i>
                         <span>Cartoon Desk</span>
+                        <span
+                            v-if="pendingCounts.cartoonDesk !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.cartoonDesk === 0 }"
+                            :title="`${pendingCounts.cartoonDesk} pending cartoon approval${pendingCounts.cartoonDesk === 1 ? '' : 's'}`"
+                        >
+                            {{ pendingCounts.cartoonDesk > 99 ? '99+' : pendingCounts.cartoonDesk }}
+                        </span>
                     </router-link>
                 </nav>
             </div>
@@ -381,6 +392,13 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-table-cells-large"></i>
                         <span>Cartoon Desk</span>
+                        <span
+                            v-if="pendingCounts.cartoonDesk !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.cartoonDesk === 0 }"
+                        >
+                            {{ pendingCounts.cartoonDesk > 99 ? '99+' : pendingCounts.cartoonDesk }}
+                        </span>
                     </router-link>
                     <router-link
                         to="/cartoonist/profile-settings"

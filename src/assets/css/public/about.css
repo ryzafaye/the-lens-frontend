@@ -417,12 +417,12 @@
 
 .members-sticky-toolbar {
     position: sticky;
-    top: calc(var(--site-header-sticky-height, 180px) + 6px);
+    top: calc(var(--site-header-sticky-height, 140px) + 6px);
     z-index: 1100;
-    width: 100vw;
-    max-width: 100vw;
-    margin: 0 0 12px calc((100% - 100vw) / 2);
-    padding: 6px clamp(12px, 2vw, 28px);
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 12px 0;
+    padding: 6px 0;
     box-sizing: border-box;
     pointer-events: none;
 }
@@ -512,6 +512,20 @@
     }
     .about-hero {
         padding: 24px 20px;
+    }
+    .about-section-heading {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .about-documents-section .about-section-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .about-outline-link,
+    .about-hero-cta,
+    .document-download-btn {
+        min-height: 44px;
     }
     .editorial-pillars-strip {
         grid-template-columns: minmax(0, 1fr);

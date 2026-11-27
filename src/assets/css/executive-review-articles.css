@@ -27,7 +27,7 @@
 }
 
 .review-articles-page .page-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif);
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif);
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary, #101828);
@@ -272,11 +272,11 @@
     font-weight: 600;
 }
 
-/* Bold Article Title (Refined 1.15rem headline) */
+/* Article Title (Refined 1.05rem headline) */
 .review-box-title {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
-    font-size: 1.15rem !important;
-    font-weight: 700 !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
+    font-size: 1.05rem !important;
+    font-weight: 600 !important;
     color: #101828;
     line-height: 1.35;
     letter-spacing: -0.015em;
@@ -510,7 +510,7 @@
 }
 
 .empty-queue-title {
-    font-family: 'Playfair Display', Georgia, serif !important;
+    font-family: 'Merriweather', Georgia, serif !important;
     font-size: 1.28rem;
     font-weight: 700;
     color: #101828;
@@ -630,7 +630,7 @@
 }
 
 .manuscript-body {
-    padding: 24px 28px;
+    padding: 16px 28px 24px;
     overflow-y: auto;
     flex: 1;
 }
@@ -710,11 +710,13 @@
 }
 
 .manuscript-headline {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
-    font-size: 1.85rem !important;
-    font-weight: 700;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
+    font-size: 1.45rem !important;
+    font-weight: 600 !important;
     color: #101828;
     line-height: 1.3;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
     margin-bottom: 12px;
 }
 
@@ -803,7 +805,7 @@
 .manuscript-text-content h1,
 .viewer-content-text h1,
 #modal-body h1 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.75rem !important;
     font-weight: 700 !important;
     line-height: 1.3 !important;
@@ -815,7 +817,7 @@
 .manuscript-text-content h2,
 .viewer-content-text h2,
 #modal-body h2 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.45rem !important;
     font-weight: 700 !important;
     line-height: 1.35 !important;
@@ -827,7 +829,7 @@
 .manuscript-text-content h3,
 .viewer-content-text h3,
 #modal-body h3 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.25rem !important;
     font-weight: 700 !important;
     line-height: 1.4 !important;
@@ -839,7 +841,7 @@
 .manuscript-text-content h4,
 .viewer-content-text h4,
 #modal-body h4 {
-    font-family: var(--font-heading, 'Playfair Display', Georgia, serif) !important;
+    font-family: var(--font-heading, 'Merriweather', Georgia, serif) !important;
     font-size: 1.12rem !important;
     font-weight: 700 !important;
     line-height: 1.4 !important;
@@ -1179,9 +1181,9 @@
     }
 
     .review-box-title {
-        font-size: 1.30rem !important;
-        font-weight: 700 !important;
-        line-height: 1.35 !important;
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
+        line-height: 1.25 !important;
     }
 
     /* Move Actions container to bottom, taking 100% width */
@@ -1279,7 +1281,7 @@
 
 .editor-headline-textarea {
     width: 100%;
-    font-family: 'Playfair Display', Georgia, serif !important;
+    font-family: 'Merriweather', Georgia, serif !important;
     font-size: 1.55rem;
     font-weight: 700;
     color: #101828;
@@ -1406,7 +1408,7 @@
 }
 
 .editor-content-area h3 {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Merriweather', Georgia, serif;
     font-size: 1.25rem;
     font-weight: 700;
     color: #101828;

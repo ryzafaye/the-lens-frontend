@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { logout } from '../services/api.js';
 import { currentUser, setAuthUser, clearAuthUser, useAuthStore } from '../stores/auth.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../utils/image.js';
+import { useSidebarPendingCounts } from '../composables/useSidebarPendingCounts.js';
 import LogoutModal from '../components/LogoutModal.vue';
 const logoImg = '/images/logo.jpg';
 import '../assets/css/executive-dashboard.css';
@@ -15,6 +16,7 @@ const route = useRoute();
 
 // Global reactive user state so any profile update immediately reflects across sidebar and header without refresh
 const user = currentUser;
+const { pendingCounts } = useSidebarPendingCounts('section-head');
 
 // UI states
 const isMobileNavOpen = ref(false);
@@ -177,6 +179,14 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Review Article</span>
+                        <span
+                            v-if="pendingCounts.reviewArticles !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.reviewArticles === 0 }"
+                            :title="`${pendingCounts.reviewArticles} pending article approval${pendingCounts.reviewArticles === 1 ? '' : 's'}`"
+                        >
+                            {{ pendingCounts.reviewArticles > 99 ? '99+' : pendingCounts.reviewArticles }}
+                        </span>
                     </router-link>
 
                     <router-link
@@ -332,6 +342,13 @@ onUnmounted(() => {
                     >
                         <i class="fa-solid fa-clipboard-check"></i>
                         <span>Review Article</span>
+                        <span
+                            v-if="pendingCounts.reviewArticles !== null"
+                            class="sidebar-nav-badge"
+                            :class="{ 'is-zero': pendingCounts.reviewArticles === 0 }"
+                        >
+                            {{ pendingCounts.reviewArticles > 99 ? '99+' : pendingCounts.reviewArticles }}
+                        </span>
                     </router-link>
 
                     <router-link

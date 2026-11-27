@@ -268,7 +268,7 @@ onMounted(() => {
                 <!-- 1. Page Header (Exact Section Head format with Refresh button) -->
                 <div class="activity-page-header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
                     <div>
-                        <h1 class="activity-page-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                        <h1 class="activity-page-title">
                             {{ pageTitle }}
                         </h1>
                         <p style="font-size: 0.85rem; color: #667085; margin: 4px 0 0 0;">
@@ -388,14 +388,13 @@ onMounted(() => {
                                         <strong class="causer-name-token">{{ getStatement(item).causer }}</strong>
                                         <span> {{ getStatement(item).beforeSubject }}</span>
                                         <template v-if="getStatement(item).subjectName">
-                                            <span class="subject-name-token" style="font-family: 'Playfair Display', Georgia, serif !important; margin: 0 4px;">
+                                            <span class="subject-name-token">
                                                 "{{ getStatement(item).subjectName }}"
                                             </span>
                                         </template>
                                         <span v-if="getStatement(item).afterSubject" :style="{ marginLeft: getStatement(item).subjectName ? '0px' : '4px' }">
                                             {{ getStatement(item).afterSubject }}
                                         </span>
-                                        <span class="timestamp-token" style="margin-left: 4px;">{{ getTimestampText(item) }}.</span>
                                     </p>
 
                                     <!-- Under it: Role and formatted timestamp only -->
@@ -415,7 +414,7 @@ onMounted(() => {
                         class="activity-empty-state"
                     >
                         <i class="fa-solid fa-clock-rotate-left"></i>
-                        <h4 class="empty-state-title" style="font-family: 'Playfair Display', Georgia, serif !important;">
+                        <h4 class="empty-state-title">
                             {{ searchQuery || dateFilter !== 'all' ? 'No activity logs found' : 'No activity logs yet' }}
                         </h4>
                         <p class="empty-state-desc">

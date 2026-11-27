@@ -93,8 +93,8 @@ export function resolveMediaUrl(itemOrUrl, options = { width: 800, crop: 'limit'
 }
 
 /**
- * Extracts a human-authored title/concept from an artwork/photo object,
- * suppressing raw camera filenames, downloads (e.g. Oip (2)), hashes, or machine slugs.
+ * Extracts the display title (edited file name or original file name as-is) from a cartoon/photo item.
+ * Suppresses raw directory/upload paths and strips common image file extensions.
  *
  * @param {object|null} item
  * @param {string} [defaultFallback='']
@@ -102,26 +102,18 @@ export function resolveMediaUrl(itemOrUrl, options = { width: 800, crop: 'limit'
  */
 export function getCustomTitle(item, defaultFallback = '') {
     if (!item) return defaultFallback;
-    let raw = (item.title || item.caption || '').trim();
+    let raw = String(item.title || item.file_name || item.filename || item.caption || '').trim();
     if (!raw) return defaultFallback;
 
-    // Strip image extension if contributor saved title as file name
+    // Strip image extension if contributor saved title with extension
     raw = raw.replace(/\.(jpg|jpeg|png|webp|svg|gif|bmp|avif)$/i, '').trim();
     if (!raw) return defaultFallback;
 
-    // Filter out server/file paths or purely auto-generated fallback tokens
+    // Only filter out raw filesystem/server directory paths
     if (
         raw.includes('/') ||
         raw.includes('\\') ||
-        raw.includes('uploads') ||
-        /^img[_\-0-9]+$/i.test(raw) ||
-        /^oip(\s*\([0-9]+\))?$/i.test(raw) ||
-        /^photo[_\-0-9]+$/i.test(raw) ||
-        /^cartoon[_\-0-9]+$/i.test(raw) ||
-        /^media[_\-0-9]+$/i.test(raw) ||
-        /^screenshot[_\-0-9]+$/i.test(raw) ||
-        /^untitled$/i.test(raw) ||
-        /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(raw)
+        /\buploads\b/i.test(raw)
     ) {
         return defaultFallback;
     }

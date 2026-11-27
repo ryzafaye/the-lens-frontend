@@ -51,7 +51,7 @@ async function fetchHomeData() {
         const res = await getPublicHome();
         const data = res?.props || res || {};
         featuredArticle.value = data.featuredArticle || null;
-        latestArticles.value = data.latestArticles || [];
+        latestArticles.value = (data.latestArticles || []).slice(0, 5);
         moreStories.value = data.moreStories || [];
         categorySections.value = data.categorySections || [];
     } catch (err) {
