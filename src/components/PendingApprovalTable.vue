@@ -43,7 +43,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['open-manuscript', 'approve', 'revision', 'resubmit', 'remarks']);
+const emit = defineEmits(['open-manuscript', 'edit-manuscript', 'approve', 'revision', 'resubmit', 'remarks']);
 </script>
 
 <template>
@@ -104,7 +104,7 @@ const emit = defineEmits(['open-manuscript', 'approve', 'revision', 'resubmit', 
                                     type="button"
                                     class="btn-table-action btn-table-edit"
                                     title="Edit manuscript"
-                                    @click="emit('open-manuscript', art)"
+                                    @click="emit('edit-manuscript', art)"
                                 >
                                     <i class="fa-solid fa-pen-to-square"></i>
                                     <span>Edit</span>

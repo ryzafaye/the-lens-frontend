@@ -8,6 +8,7 @@ import {
     toggleEicAccountStatus,
 } from '../../services/api.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
+import { validateEmail, normalizeEmail, extractApiErrorMessage } from '../../utils/validation.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-manage-accounts.css';
 
@@ -23,6 +24,8 @@ const statusFilter = ref('all');
 const isAddModalOpen = ref(false);
 const newStudentNumber = ref('');
 const studentNumberError = ref('');
+const newEmail = ref('');
+const emailError = ref('');
 const newFullName = ref('');
 const newRoleId = ref('');
 
@@ -87,8 +90,9 @@ const filteredOfficers = computed(() => {
         list = list.filter(o => {
             const name = (o.name || '').toLowerCase();
             const studentNo = (o.studentNumber || '').toLowerCase();
+            const email = (o.email || '').toLowerCase();
             const role = (o.role || '').toLowerCase();
-            return name.includes(q) || studentNo.includes(q) || role.includes(q);
+            return name.includes(q) || studentNo.includes(q) || email.includes(q) || role.includes(q);
         });
     }
 
@@ -168,9 +172,23 @@ function validateStudentNumber() {
     return true;
 }
 
+function validateEmailField() {
+    const err = validateEmail(newEmail.value, { required: true, maxLength: 255 });
+    emailError.value = err;
+    return !err;
+}
+
+function onEmailInput() {
+    if (emailError.value) {
+        validateEmailField();
+    }
+}
+
 function openAddModal() {
     newStudentNumber.value = '';
     studentNumberError.value = '';
+    newEmail.value = '';
+    emailError.value = '';
     newFullName.value = '';
     newRoleId.value = '';
     isAddModalOpen.value = true;
@@ -180,16 +198,25 @@ function closeAddModal() {
     isAddModalOpen.value = false;
     newStudentNumber.value = '';
     studentNumberError.value = '';
+    newEmail.value = '';
+    emailError.value = '';
     newFullName.value = '';
     newRoleId.value = '';
 }
 
 async function handleAddOfficer() {
     const trimmedSn = newStudentNumber.value.trim().toUpperCase();
+    const cleanedEmail = normalizeEmail(newEmail.value);
     newStudentNumber.value = trimmedSn;
+    newEmail.value = cleanedEmail;
 
     if (!validateStudentNumber()) {
         showToast(studentNumberError.value || 'Student number format must be YEAR-5DIGIT-BN-0 (e.g. 2024-00010-BN-0).', 'warning');
+        return;
+    }
+
+    if (!validateEmailField()) {
+        showToast(emailError.value || 'Please enter a valid email address.', 'warning');
         return;
     }
 
@@ -211,6 +238,7 @@ async function handleAddOfficer() {
     try {
         const payload = {
             student_number: trimmedSn,
+            email: cleanedEmail,
             full_name: newFullName.value.trim(),
             role_id: newRoleId.value,
         };
@@ -226,12 +254,17 @@ async function handleAddOfficer() {
         showToast(res?.message || 'Officer account created successfully. Default password is thelenspupBN0.', 'success');
     } catch (err) {
         console.error('Failed to create account:', err);
-        const msg = err.response?.data?.message || (err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(' ') : 'Failed to create officer account.');
+        const msg = extractApiErrorMessage(err, 'Failed to create officer account.');
         showToast(msg, 'danger');
         if (err.response?.data?.errors?.student_number) {
             studentNumberError.value = Array.isArray(err.response.data.errors.student_number)
                 ? err.response.data.errors.student_number[0]
                 : err.response.data.errors.student_number;
+        }
+        if (err.response?.data?.errors?.email) {
+            emailError.value = Array.isArray(err.response.data.errors.email)
+                ? err.response.data.errors.email[0]
+                : err.response.data.errors.email;
         }
     } finally {
         isSubmitting.value = false;
@@ -484,13 +517,17 @@ onMounted(() => {
                                     <span class="officer-role-tag">{{ officer.role }}</span>
                                 </div>
 
-                                <!-- Bottom Line: Account Status & Student Number -->
+                                <!-- Bottom Line: Account Status, Student Number & Email -->
                                 <div class="officer-meta-row">
                                     <span class="status-pill" :class="officer.status === 'deactivated' ? 'deactivated' : 'active'">
                                         <span class="status-dot"></span>
                                         <span>{{ officer.status === 'deactivated' ? 'Deactivated' : 'Active' }}</span>
                                     </span>
                                     <span class="text-xs text-stone-500 font-mono ml-2">{{ officer.studentNumber }}</span>
+                                    <span v-if="officer.email" class="officer-email-meta">
+                                        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                                        <span>{{ officer.email }}</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -547,7 +584,7 @@ onMounted(() => {
             aria-labelledby="add-modal-title"
             @click.self="closeAddModal"
         >
-            <div class="modal-card edit-modal-card">
+            <div class="modal-card edit-modal-card add-officer-modal-card">
                 <div class="modal-header-simple">
                     <h3 id="add-modal-title" class="modal-title font-semibold text-base">
                         <i class="fa-solid fa-user-plus text-[#5c0a18]"></i>
@@ -559,28 +596,55 @@ onMounted(() => {
                 </div>
 
                 <form id="add-officer-form" class="edit-modal-form" @submit.prevent="handleAddOfficer" novalidate>
-                    <div class="form-field">
-                        <label for="officer-input-student-id">Student Number *</label>
-                        <input
-                            id="officer-input-student-id"
-                            :value="newStudentNumber"
-                            @input="onStudentNumberInput"
-                            @blur="validateStudentNumber"
-                            type="text"
-                            name="student_number"
-                            class="form-input"
-                            :class="{ 'border-red-500': !!studentNumberError }"
-                            placeholder="e.g. 2024-00010-BN-0"
-                            maxlength="15"
-                            required
-                        >
-                        <p v-if="studentNumberError" style="color: #d92d20; font-size: 0.78rem; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
-                            <i class="fa-solid fa-circle-exclamation"></i>
-                            <span>{{ studentNumberError }}</span>
-                        </p>
-                        <p v-else style="color: #667085; font-size: 0.74rem; margin-top: 3px;">
-                            Format: YEAR-5DIGIT-BN-0 (e.g. 2024-00010-BN-0)
-                        </p>
+                    <div class="form-row-2">
+                        <div class="form-field">
+                            <label for="officer-input-student-id">Student Number *</label>
+                            <input
+                                id="officer-input-student-id"
+                                :value="newStudentNumber"
+                                @input="onStudentNumberInput"
+                                @blur="validateStudentNumber"
+                                type="text"
+                                name="student_number"
+                                class="form-input"
+                                :class="{ 'is-invalid': !!studentNumberError }"
+                                placeholder="e.g. 2024-00010-BN-0"
+                                maxlength="15"
+                                required
+                            >
+                            <p v-if="studentNumberError" class="field-error-text">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                <span>{{ studentNumberError }}</span>
+                            </p>
+                            <p v-else class="field-hint-text">
+                                Format: YEAR-5DIGIT-BN-0
+                            </p>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="officer-input-email">Email Address *</label>
+                            <input
+                                id="officer-input-email"
+                                v-model="newEmail"
+                                @input="onEmailInput"
+                                @blur="validateEmailField"
+                                type="email"
+                                name="email"
+                                class="form-input"
+                                :class="{ 'is-invalid': !!emailError }"
+                                placeholder="e.g. officer@pup.edu.ph"
+                                maxlength="255"
+                                autocomplete="email"
+                                required
+                            >
+                            <p v-if="emailError" class="field-error-text">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                <span>{{ emailError }}</span>
+                            </p>
+                            <p v-else class="field-hint-text">
+                                Must be a valid unique email address
+                            </p>
+                        </div>
                     </div>
 
                     <div class="form-field">

@@ -826,4 +826,56 @@
     font-weight: 600;
 }
 
+/* Wider Add Officer Modal Card & Side-by-Side Fields */
+.add-officer-modal-card {
+    max-width: 640px !important;
+    width: 100%;
+}
+
+.form-input.is-invalid {
+    border-color: #d92d20 !important;
+    background-color: #fffbfa;
+}
+
+.form-input.is-invalid:focus {
+    border-color: #d92d20 !important;
+    box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.12) !important;
+}
+
+.field-error-text {
+    color: #d92d20;
+    font-size: 0.76rem;
+    margin: 4px 0 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    line-height: 1.35;
+}
+
+.field-hint-text {
+    color: #667085;
+    font-size: 0.72rem;
+    margin: 3px 0 0;
+    line-height: 1.35;
+}
+
+.officer-email-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    color: #667085;
+    word-break: break-word;
+}
+
+.officer-email-meta i {
+    font-size: 0.72rem;
+    color: #98a2b3;
+}
+
+@media (max-width: 640px) {
+    .add-officer-modal-card .form-row-2 {
+        grid-template-columns: 1fr;
+    }
+}
 

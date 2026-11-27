@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import PublicLayout from '../../layouts/PublicLayout.vue';
 import { submitPublicFeedback } from '../../services/api.js';
+import { validateEmail, normalizeEmail } from '../../utils/validation.js';
 import '../../assets/css/public/feedback.css';
 
 const form = ref({
@@ -14,10 +15,23 @@ const form = ref({
 const isSubmitting = ref(false);
 const successMessage = ref('');
 const errorMessage = ref('');
+const emailError = ref('');
 
 const messageCount = computed(() => {
     return form.value.message ? form.value.message.length : 0;
 });
+
+function validateEmailField() {
+    const err = validateEmail(form.value.email, { required: false, maxLength: 150 });
+    emailError.value = err;
+    return !err;
+}
+
+function onEmailInput() {
+    if (emailError.value) {
+        validateEmailField();
+    }
+}
 
 function resetForm() {
     form.value.name = '';
@@ -26,9 +40,15 @@ function resetForm() {
     form.value.message = '';
     successMessage.value = '';
     errorMessage.value = '';
+    emailError.value = '';
 }
 
 async function handleSubmit() {
+    if (!validateEmailField()) {
+        errorMessage.value = emailError.value;
+        return;
+    }
+
     if (!form.value.subject.trim() || !form.value.message.trim()) {
         errorMessage.value = 'Please provide both a subject and your message.';
         return;
@@ -39,9 +59,10 @@ async function handleSubmit() {
     successMessage.value = '';
 
     try {
+        const cleanedEmail = form.value.email.trim() ? normalizeEmail(form.value.email) : null;
         const payload = {
             name: form.value.name.trim() || null,
-            email: form.value.email.trim() || null,
+            email: cleanedEmail,
             subject: form.value.subject.trim(),
             message: form.value.message.trim(),
             category: 'editorial',
@@ -52,10 +73,16 @@ async function handleSubmit() {
         form.value.email = '';
         form.value.subject = '';
         form.value.message = '';
+        emailError.value = '';
         window.scrollTo({ top: 120, behavior: 'smooth' });
     } catch (err) {
         console.error('Failed to submit feedback:', err);
         const errData = err.response?.data;
+        if (errData?.errors?.email) {
+            emailError.value = Array.isArray(errData.errors.email)
+                ? errData.errors.email[0]
+                : errData.errors.email;
+        }
         if (errData?.errors) {
             errorMessage.value = Object.values(errData.errors).flat().join(' ');
         } else {
@@ -121,7 +148,7 @@ async function handleSubmit() {
                     </div>
 
                     <!-- Feedback Form -->
-                    <form v-else id="editor-feedback-form" class="editor-feedback-form" @submit.prevent="handleSubmit">
+                    <form v-else id="editor-feedback-form" class="editor-feedback-form" @submit.prevent="handleSubmit" novalidate>
                         <div class="feedback-form-heading">
                             <span class="feedback-form-icon">
                                 <i class="fa-regular fa-paper-plane" aria-hidden="true"></i>
@@ -160,10 +187,17 @@ async function handleSubmit() {
                                 type="email"
                                 id="feedback-email"
                                 v-model="form.email"
+                                @input="onEmailInput"
+                                @blur="validateEmailField"
+                                :class="{ 'is-invalid': !!emailError }"
                                 maxlength="150"
                                 autocomplete="email"
                                 placeholder="you@example.com"
                             >
+                            <p v-if="emailError" class="feedback-field-error">
+                                <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+                                <span> {{ emailError }}</span>
+                            </p>
                         </div>
 
                         <div class="feedback-field">

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import EicLayout from '../../layouts/EicLayout.vue';
 import {
     getEicManageArticles,
@@ -10,11 +10,13 @@ import {
 } from '../../services/api.js';
 import {
     formatCleanArticleContent,
-    cleanContentForEditing,
-    prepareContentForSaving,
+    formatContentForEditor,
+    sanitizeRichArticleHtml,
 } from '../../utils/articleContent.js';
 import { optimizeCloudinaryUrl } from '../../utils/image.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
+import ArticleRichToolbar from '../../components/ArticleRichToolbar.vue';
+import { handleRichEditorKeydown, handleRichEditorPaste } from '../../utils/richEditor.js';
 import '../../assets/css/executive-manage-articles.css';
 import '../../assets/css/executive-modals.css';
 
@@ -38,6 +40,7 @@ const isViewerOpen = ref(false);
 const activeArticle = ref(null);
 
 const isEditOpen = ref(false);
+const editBodyRef = ref(null);
 const editForm = ref({
     id: null,
     title: '',
@@ -214,18 +217,30 @@ function normalizeCategoryValue(cat) {
     return cat;
 }
 
+function syncEditBodyContent() {
+    if (editBodyRef.value) {
+        editForm.value.content = editBodyRef.value.innerHTML;
+    }
+}
+
 // Edit Modal
 function openEditModal(item) {
     closeCardMenus();
+    const initialHtml = formatContentForEditor(item.content || item.excerpt || '');
     editForm.value = {
         id: item.id,
         title: item.title || '',
         category: normalizeCategoryValue(item.category),
         excerpt: item.excerpt || '',
-        content: cleanContentForEditing(item.content || item.excerpt || ''),
+        content: initialHtml,
     };
     isEditOpen.value = true;
     document.body.style.overflow = 'hidden';
+    nextTick(() => {
+        if (editBodyRef.value) {
+            editBodyRef.value.innerHTML = initialHtml;
+        }
+    });
 }
 
 function closeEditModal() {
@@ -236,6 +251,16 @@ function closeEditModal() {
 async function saveEdit() {
     if (!editForm.value.title.trim()) {
         showToast('Article title is required.', 'error');
+        return;
+    }
+
+    const rawBody = editBodyRef.value ? editBodyRef.value.innerHTML : editForm.value.content;
+    const plainBodyText = editBodyRef.value
+        ? editBodyRef.value.innerText.trim()
+        : String(rawBody || '').replace(/<[^>]+>/g, '').trim();
+    if (!plainBodyText) {
+        showToast('Article body cannot be empty.', 'error');
+        editBodyRef.value?.focus();
         return;
     }
 
@@ -255,7 +280,7 @@ async function saveEdit() {
             title: editForm.value.title.trim(),
             category: editForm.value.category,
             excerpt: editForm.value.excerpt.trim(),
-            content: prepareContentForSaving(editForm.value.content),
+            content: sanitizeRichArticleHtml(rawBody),
         };
         const res = await updateEicArticle(editForm.value.id, payload);
         if (res) {
@@ -777,7 +802,20 @@ onUnmounted(() => {
 
                     <div class="form-field">
                         <label for="edit-body-input">Article Body / Manuscript Content <span class="required-star">*</span></label>
-                        <textarea id="edit-body-input" v-model="editForm.content" class="form-textarea edit-body-textarea" rows="10" placeholder="Type or paste the manuscript content..." required></textarea>
+                        <ArticleRichToolbar :target="editBodyRef" sticky-top="0px" @change="syncEditBodyContent" />
+                        <div
+                            id="edit-body-input"
+                            ref="editBodyRef"
+                            class="edit-body-rich rich-editable-surface"
+                            contenteditable="true"
+                            spellcheck="true"
+                            role="textbox"
+                            aria-multiline="true"
+                            data-placeholder="Type or paste the manuscript content..."
+                            @input="syncEditBodyContent"
+                            @keydown="(e) => handleRichEditorKeydown(e, editBodyRef, syncEditBodyContent)"
+                            @paste="(e) => handleRichEditorPaste(e, syncEditBodyContent)"
+                        ></div>
                     </div>
 
                     <div class="modal-footer edit-modal-footer">

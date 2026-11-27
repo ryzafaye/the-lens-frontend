@@ -296,14 +296,13 @@ async function handleLogin() {
                                     <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-stone-800">
                                         Password
                                     </label>
-                                    <button
-                                        type="button"
+                                    <router-link
+                                        to="/forgot-password"
                                         id="forgot-password-link"
-                                        style="font-size: 10px !important; line-height: 14px !important;"
-                                        class="font-medium text-wine hover:text-[#4a091b] hover:underline focus:outline-none cursor-pointer transition-colors"
+                                        class="text-xs sm:text-[13px] font-semibold text-wine hover:text-[#4a091b] hover:underline focus:outline-none cursor-pointer transition-colors"
                                     >
                                         Forgot password?
-                                    </button>
+                                    </router-link>
                                 </div>
                                 <div class="relative group">
                                     <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400 group-focus-within:text-rose-900 transition-colors">

@@ -4,6 +4,7 @@ import MpcLayout from '../../layouts/MpcLayout.vue';
 import { getUser, updateProfileInfo, updatePassword } from '../../services/api.js';
 import { setAuthUser } from '../../stores/auth.js';
 import { optimizeCloudinaryUrl, resolveUserAvatar } from '../../utils/image.js';
+import { validateEmail, normalizeEmail, extractApiErrorMessage } from '../../utils/validation.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/shared-profile-settings.css';
 
@@ -14,6 +15,7 @@ const isLoading = ref(true);
 const fullName = ref('');
 const studentNumber = ref('');
 const email = ref('');
+const emailError = ref('');
 const userRole = ref('Media and Public Communications Head');
 const avatarPreview = ref('/images/member-placeholder.svg');
 const avatarFile = ref(null);
@@ -102,14 +104,33 @@ function onResetAvatar() {
     showToast('Photo marked for removal. Click Save Changes to confirm.', 'info');
 }
 
+function validateEmailField() {
+    const err = validateEmail(email.value, { required: true, maxLength: 255 });
+    emailError.value = err;
+    return !err;
+}
+
+function onEmailInput() {
+    if (emailError.value) {
+        validateEmailField();
+    }
+}
+
 // Submit Profile Info
 async function handleSaveProfile() {
     if (isSavingProfile.value) return;
 
-    if (!fullName.value.trim() || !studentNumber.value.trim() || !email.value.trim()) {
-        showToast('Please fill in Full Name, Student Number, and Email Address.', 'danger');
+    if (!fullName.value.trim() || !studentNumber.value.trim()) {
+        showToast('Please fill in Full Name and Student Number.', 'danger');
         return;
     }
+    if (!validateEmailField()) {
+        showToast(emailError.value || 'Please enter a valid email address.', 'danger');
+        return;
+    }
+
+    const cleanedEmail = normalizeEmail(email.value);
+    email.value = cleanedEmail;
 
     const confirmed = await confirmAction({
         title: 'Save Profile Changes',
@@ -125,7 +146,7 @@ async function handleSaveProfile() {
         const formData = new FormData();
         formData.append('full_name', fullName.value.trim());
         formData.append('student_number', studentNumber.value.trim());
-        formData.append('email', email.value.trim());
+        formData.append('email', cleanedEmail);
 
         if (avatarFile.value) {
             formData.append('avatar', avatarFile.value);
@@ -139,7 +160,9 @@ async function handleSaveProfile() {
         const freshAvatar = res.profile_picture_url || res.user?.profile_picture_url || res.user?.avatar_url;
         const freshName = res.user?.full_name || fullName.value.trim();
         const freshStudent = res.user?.student_number || studentNumber.value.trim();
-        const freshEmail = res.user?.email || email.value.trim();
+        const freshEmail = res.user?.email || cleanedEmail;
+        email.value = freshEmail;
+        emailError.value = '';
 
         if (removeAvatar.value) {
             avatarPreview.value = '/images/member-placeholder.svg';
@@ -171,7 +194,12 @@ async function handleSaveProfile() {
         avatarFile.value = null;
         if (fileInputRef.value) fileInputRef.value.value = '';
     } catch (err) {
-        showToast(err.response?.data?.message || 'Failed to update profile.', 'danger');
+        if (err.response?.data?.errors?.email) {
+            emailError.value = Array.isArray(err.response.data.errors.email)
+                ? err.response.data.errors.email[0]
+                : err.response.data.errors.email;
+        }
+        showToast(extractApiErrorMessage(err, 'Failed to update profile.'), 'danger');
     } finally {
         isSavingProfile.value = false;
     }
@@ -377,12 +405,19 @@ onMounted(() => {
                                     type="email"
                                     id="input-email"
                                     v-model="email"
+                                    @input="onEmailInput"
+                                    @blur="validateEmailField"
                                     class="settings-input"
+                                    :class="{ 'is-invalid': !!emailError }"
                                     placeholder="Enter your email address"
                                     required
                                     maxlength="255"
                                     autocomplete="email"
                                 >
+                                <p v-if="emailError" class="settings-field-error">
+                                    <i class="fa-solid fa-circle-exclamation"></i>
+                                    <span>{{ emailError }}</span>
+                                </p>
                             </div>
 
                             <!-- Role Field -->

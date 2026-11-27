@@ -102,6 +102,8 @@ apiClient.interceptors.response.use(
             ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) &&
             !url.includes('/login') &&
             !url.includes('/logout') &&
+            !url.includes('/forgot-password') &&
+            !url.includes('/reset-password') &&
             !url.includes('/ping')
         ) {
             clearApiCache();
@@ -159,6 +161,24 @@ export async function logout() {
         csrfInitialized = false;
         delete apiClient.defaults.headers.common['X-CSRF-TOKEN'];
     }
+}
+
+export async function requestPasswordReset({ student_number = null, email = null }) {
+    const payload = {};
+    if (student_number) payload.student_number = student_number;
+    if (email) payload.email = email;
+    const response = await apiClient.post('/api/forgot-password', payload);
+    return response.data;
+}
+
+export async function resetPassword({ token, email, password, password_confirmation }) {
+    const response = await apiClient.post('/api/reset-password', {
+        token,
+        email,
+        password,
+        password_confirmation,
+    });
+    return response.data;
 }
 
 // In-flight promise deduplicator for /api/user requests

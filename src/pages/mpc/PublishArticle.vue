@@ -9,7 +9,7 @@ import {
     returnMpcArticleForRevision,
 } from '../../services/api.js';
 import { formatCleanArticleContent } from '../../utils/articleContent.js';
-import { resolveMediaUrl } from '../../utils/image.js';
+import { resolveMediaUrl, getCustomTitle } from '../../utils/image.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-dashboard.css';
 import '../../assets/css/executive-modals.css';
@@ -133,18 +133,32 @@ const countUnpublished = computed(() => {
     return articles.value.filter(a => a.status === 'unpublished' || (a.db_status || '').toLowerCase() === 'unpublished').length;
 });
 
+const availableApprovedCovers = computed(() => {
+    const assignedIds = new Set(
+        articles.value
+            .map(a => String(a.assignedCoverId || a.cover_id || ''))
+            .filter(Boolean)
+    );
+    return approvedCovers.value.filter(c => {
+        const status = (c.status || '').toLowerCase();
+        const isAssigned = Boolean(c.isCover || c.is_cover || c.connectedArticleId || c.article_id || assignedIds.has(String(c.id)));
+        const isPublished = status.includes('publish');
+        return !isAssigned && !isPublished;
+    });
+});
+
 const countCovers = computed(() => {
-    return approvedCovers.value.length;
+    return availableApprovedCovers.value.length;
 });
 
 const coverLibraryFilter = ref('all'); // 'all' | 'photo' | 'cartoon'
 
 const countMediaCovers = computed(() => {
-    return approvedCovers.value.filter(c => resolveCoverType(c) === 'photo').length;
+    return availableApprovedCovers.value.filter(c => resolveCoverType(c) === 'photo').length;
 });
 
 const countCartoonCovers = computed(() => {
-    return approvedCovers.value.filter(c => resolveCoverType(c) === 'cartoon').length;
+    return availableApprovedCovers.value.filter(c => resolveCoverType(c) === 'cartoon').length;
 });
 
 // Filtered articles list
@@ -184,7 +198,7 @@ const filteredArticles = computed(() => {
 
 // Filtered covers list for library gallery view
 const filteredApprovedCovers = computed(() => {
-    let list = [...approvedCovers.value];
+    let list = [...availableApprovedCovers.value];
 
     if (coverLibraryFilter.value !== 'all') {
         list = list.filter(c => resolveCoverType(c) === coverLibraryFilter.value);
@@ -211,8 +225,8 @@ const filteredApprovedCovers = computed(() => {
 
 // Filtered covers list for assign modal
 const filteredModalCovers = computed(() => {
-    if (coverModalFilter.value === 'all') return approvedCovers.value;
-    return approvedCovers.value.filter(c => resolveCoverType(c) === coverModalFilter.value);
+    if (coverModalFilter.value === 'all') return availableApprovedCovers.value;
+    return availableApprovedCovers.value.filter(c => resolveCoverType(c) === coverModalFilter.value);
 });
 
 // Modal Handlers
@@ -230,7 +244,7 @@ function closeReaderModal() {
 
 function openAssignCoverModal(article) {
     coverTargetArticle.value = article;
-    selectedCoverId.value = article.assignedCoverId || article.cover_id || null;
+    selectedCoverId.value = null;
     coverModalFilter.value = 'all';
     isAssignCoverOpen.value = true;
     document.body.classList.add('modal-open');
@@ -312,6 +326,7 @@ async function handleConfirmAssignCover() {
 
         showToast(res?.message || 'Cover attached successfully.', 'success');
         closeAssignCoverModal();
+        loadData(true);
     } catch (err) {
         showToast(err.response?.data?.message || 'Failed to attach cover.', 'error');
     } finally {
@@ -346,6 +361,7 @@ async function handlePublishArticle(article) {
         }
         showToast(res?.message || 'Article published successfully.', 'success');
         closeReaderModal();
+        loadData(true);
     } catch (err) {
         showToast(err.response?.data?.message || 'Failed to publish article.', 'error');
     } finally {
@@ -823,12 +839,12 @@ onMounted(() => {
                             </span>
                         </div>
                         <div class="mpc-gallery-item-body" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
-                            <div v-if="cover.title" style="font-weight: 600; font-size: 0.84rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                {{ cover.title }}
+                            <div style="font-weight: 600; font-size: 0.84rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {{ getCustomTitle(cover, resolveCoverType(cover) === 'cartoon' ? 'Editorial Cartoon' : 'Editorial Photo') }}
                             </div>
                             <div class="mpc-gallery-artist" style="font-size: 0.8rem; color: #344054; display: inline-flex; align-items: center; gap: 6px;">
                                 <i :class="resolveCoverType(cover) === 'cartoon' ? 'fa-solid fa-palette' : 'fa-solid fa-camera'" style="color: var(--sidebar-maroon, #5c0a18); font-size: 0.75rem;"></i>
-                                <span>{{ resolveCoverType(cover) === 'cartoon' ? 'Cartoonist' : 'Photojournalist' }}: <strong style="color: #101828;">{{ cleanArtistName(cover.artist_name || cover.artist) }}</strong></span>
+                                <strong style="color: #101828;">{{ cleanArtistName(cover.artist_name || cover.artist) }}</strong>
                             </div>
                             <div v-if="cover.date || cover.formattedDate" style="font-size: 0.74rem; color: #64748b; display: inline-flex; align-items: center; gap: 4px;">
                                 <i class="fa-regular fa-calendar"></i>
@@ -867,7 +883,7 @@ onMounted(() => {
                                     :class="{ active: coverModalFilter === 'all' }"
                                     @click="coverModalFilter = 'all'"
                                 >
-                                    All Formats ({{ approvedCovers.length }})
+                                    All Formats ({{ availableApprovedCovers.length }})
                                 </button>
                                 <button
                                     type="button"
@@ -916,12 +932,12 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <div class="mpc-gallery-item-body" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
-                                    <div v-if="c.title" style="font-weight: 600; font-size: 0.82rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                        {{ c.title }}
+                                    <div style="font-weight: 600; font-size: 0.82rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {{ getCustomTitle(c, resolveCoverType(c) === 'cartoon' ? 'Editorial Cartoon' : 'Editorial Photo') }}
                                     </div>
                                     <div class="mpc-gallery-artist" style="font-size: 0.8rem; color: #344054; display: inline-flex; align-items: center; gap: 6px;">
                                         <i :class="resolveCoverType(c) === 'cartoon' ? 'fa-solid fa-palette' : 'fa-solid fa-camera'" style="color: var(--sidebar-maroon, #5c0a18); font-size: 0.75rem;"></i>
-                                        <span>{{ resolveCoverType(c) === 'cartoon' ? 'Cartoonist' : 'Photojournalist' }}: <strong style="color: #101828;">{{ cleanArtistName(c.artist_name || c.artist) }}</strong></span>
+                                        <strong style="color: #101828;">{{ cleanArtistName(c.artist_name || c.artist) }}</strong>
                                     </div>
                                     <div v-if="c.date || c.formattedDate" style="font-size: 0.72rem; color: #64748b; display: inline-flex; align-items: center; gap: 4px;">
                                         <i class="fa-regular fa-calendar"></i>
@@ -1131,10 +1147,13 @@ onMounted(() => {
 
                         <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                             <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin: 0 0 2px 0; font-family: 'DM Sans', sans-serif; word-break: break-word;">
+                                    {{ getCustomTitle(activeInspectCover, resolveCoverType(activeInspectCover) === 'cartoon' ? 'Editorial Cartoon' : 'Editorial Photo') }}
+                                </h3>
                                 <div style="display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #64748b;">
                                     <span>
                                         <i :class="resolveCoverType(activeInspectCover) === 'cartoon' ? 'fa-solid fa-palette' : 'fa-solid fa-camera'" style="color: #700f2b; margin-right: 4px;"></i>
-                                        {{ resolveCoverType(activeInspectCover) === 'cartoon' ? 'Cartoonist:' : 'Photojournalist:' }} <strong>{{ cleanArtistName(activeInspectCover?.artist_name || activeInspectCover?.artist) }}</strong>
+                                        <strong>{{ cleanArtistName(activeInspectCover?.artist_name || activeInspectCover?.artist) }}</strong>
                                     </span>
                                     <span>&bull;</span>
                                     <span>

@@ -22,6 +22,8 @@ import {
 import { formatCleanArticleContent, cleanContentForEditing, sanitizeRichArticleHtml } from '../utils/articleContent.js';
 import { currentUser, useAuthStore } from '../stores/auth.js';
 import { confirmAction, showToast as globalShowToast } from '../utils/modal.js';
+import ArticleRichToolbar from './ArticleRichToolbar.vue';
+import { handleRichEditorKeydown, handleRichEditorPaste } from '../utils/richEditor.js';
 import '../assets/css/executive-review-articles.css';
 import '../assets/css/shared-manage-my-articles.css';
 
@@ -99,9 +101,17 @@ function showToast(message, type = 'success') {
 // Manuscript Modal State
 const isModalOpen = ref(false);
 const activeManuscript = ref(null);
+const isEditingManuscript = ref(false);
 const revisionRemarks = ref('');
 const showRemarksSection = ref(false);
 const remarksError = ref('');
+
+function enableManuscriptEditing() {
+    isEditingManuscript.value = true;
+    nextTick(() => {
+        bodyRef.value?.focus();
+    });
+}
 
 // Remarks Modal State (Exact Writer Role Parity)
 const isRemarksModalOpen = ref(false);
@@ -122,7 +132,7 @@ function editFromRemarks() {
     const art = remarksArticle.value;
     closeRemarksModal();
     if (art) {
-        openManuscriptModal(art);
+        openManuscriptModal(art, true);
     }
 }
 
@@ -263,8 +273,9 @@ const emptyQueueDescription = computed(() => {
 });
 
 // Open Manuscript Modal
-function openManuscriptModal(article) {
+function openManuscriptModal(article, startEditing = false) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = Boolean(startEditing);
     showRemarksSection.value = false;
     remarksError.value = '';
     revisionRemarks.value = '';
@@ -284,6 +295,9 @@ function openManuscriptModal(article) {
         }
         if (bodyRef.value) {
             bodyRef.value.innerHTML = formatCleanArticleContent(article.content || article.excerpt);
+            if (startEditing) {
+                bodyRef.value.focus();
+            }
         }
     });
 }
@@ -291,6 +305,7 @@ function openManuscriptModal(article) {
 // Open Revision Drawer Directly
 function openRevisionDirectly(article) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = false;
     showRemarksSection.value = true;
     remarksError.value = '';
     revisionRemarks.value = '';
@@ -340,6 +355,7 @@ function onHeadlineKeydown(e) {
 
 function closeManuscriptModal() {
     isModalOpen.value = false;
+    isEditingManuscript.value = false;
     activeManuscript.value = null;
     showRemarksSection.value = false;
     remarksError.value = '';
@@ -500,6 +516,7 @@ async function handleSaveChanges() {
         activeManuscript.value.title = payload.title;
         activeManuscript.value.excerpt = payload.excerpt;
         activeManuscript.value.content = payload.content;
+        isEditingManuscript.value = false;
 
         showToast(res?.message || 'Article changes saved successfully.', 'success');
     } catch (err) {
@@ -901,7 +918,7 @@ onMounted(() => {
                             <button
                                 type="button"
                                 class="btn-box-read btn-box-edit"
-                                @click="openManuscriptModal(item)"
+                                @click="openManuscriptModal(item, true)"
                                 title="Edit writer's manuscript"
                             >
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -1006,7 +1023,7 @@ onMounted(() => {
                                 <button
                                     type="button"
                                     class="btn-box-read btn-box-edit"
-                                    @click="openManuscriptModal(item)"
+                                    @click="openManuscriptModal(item, true)"
                                     title="Edit writer's manuscript"
                                 >
                                     <i class="fa-solid fa-pen-to-square"></i>
@@ -1097,16 +1114,16 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Body: Direct In-Place Editable Manuscript -->
+                <!-- Modal Body: View first, Editable when Edit is clicked -->
                 <div class="manuscript-body">
                     <h2
                         ref="headlineRef"
                         id="modal-headline"
                         class="manuscript-headline"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         @keydown="onHeadlineKeydown"
                     ></h2>
 
@@ -1133,22 +1150,27 @@ onMounted(() => {
                         ref="excerptRef"
                         id="modal-excerpt"
                         class="viewer-excerpt"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         style="display: none;"
                     ></p>
+
+                    <!-- Formatting Toolbar (Shown only when Edit is active) -->
+                    <ArticleRichToolbar v-if="isEditingManuscript" :target="bodyRef" sticky-top="0px" />
 
                     <!-- Clean In-Place Body Content -->
                     <div
                         ref="bodyRef"
                         id="modal-body"
-                        class="manuscript-body-text article-body-streamlined"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        class="manuscript-body-text article-body-streamlined rich-editable-surface"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
+                        @keydown="(e) => isEditingManuscript && handleRichEditorKeydown(e, bodyRef)"
+                        @paste="(e) => isEditingManuscript && handleRichEditorPaste(e)"
                     ></div>
 
                     <!-- Mandatory Revision Remarks Box -->
@@ -1180,9 +1202,23 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Footer (Clean Standard Layout: Save Changes, Return for Revision, Approve for EIC) -->
+                <!-- Modal Footer (Edit -> Save Changes, Return for Revision, Approve for EIC) -->
                 <div class="manuscript-footer">
                     <button
+                        v-if="!isEditingManuscript"
+                        type="button"
+                        id="modal-edit-btn"
+                        class="btn-box-save"
+                        @click="enableManuscriptEditing"
+                        :disabled="isSubmitting"
+                        title="Edit headline, excerpt, and article body"
+                    >
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span>Edit</span>
+                    </button>
+
+                    <button
+                        v-else
                         type="button"
                         id="modal-save-btn"
                         class="btn-box-save"

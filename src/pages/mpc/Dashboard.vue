@@ -14,7 +14,7 @@ import {
     formatPhilippineRelativeTime,
 } from '../../utils/activityGrammar.js';
 import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
-import { optimizeCloudinaryUrl } from '../../utils/image.js';
+import { optimizeCloudinaryUrl, getCustomTitle } from '../../utils/image.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
 import '../../assets/css/executive-dashboard.css';
 import '../../assets/css/executive-modals.css';
@@ -104,9 +104,23 @@ function cleanArtistName(name) {
     return String(name).replace(/^By\s+/i, '').trim();
 }
 
+const availableApprovedCovers = computed(() => {
+    const assignedIds = new Set(
+        [...pendingArticles.value, ...publishedArticles.value]
+            .map(a => String(a.assignedCoverId || a.cover_id || ''))
+            .filter(Boolean)
+    );
+    return approvedCovers.value.filter(c => {
+        const status = (c.status || '').toLowerCase();
+        const isAssigned = Boolean(c.isCover || c.is_cover || c.connectedArticleId || c.article_id || assignedIds.has(String(c.id)));
+        const isPublished = status.includes('publish');
+        return !isAssigned && !isPublished;
+    });
+});
+
 const filteredModalCovers = computed(() => {
-    if (coverModalFilter.value === 'all') return approvedCovers.value;
-    return approvedCovers.value.filter(c => resolveCoverType(c) === coverModalFilter.value);
+    if (coverModalFilter.value === 'all') return availableApprovedCovers.value;
+    return availableApprovedCovers.value.filter(c => resolveCoverType(c) === coverModalFilter.value);
 });
 
 const currentMonth = computed(() => {
@@ -156,7 +170,7 @@ function closeArticleViewer() {
 // Assign Cover Modal
 function openAssignCoverModal(article) {
     coverTargetArticle.value = article;
-    selectedCoverId.value = article.assignedCoverId || article.cover_id || null;
+    selectedCoverId.value = null;
     coverModalFilter.value = 'all';
     isAssignCoverOpen.value = true;
     document.body.classList.add('modal-open');
@@ -204,6 +218,7 @@ async function handleConfirmAssignCover() {
 
         showToast(res?.message || 'Cover attached successfully.', 'success');
         closeAssignCoverModal();
+        loadDashboard(true);
     } catch (err) {
         console.error('Assign cover error:', err);
         showToast(err.response?.data?.message || 'Failed to attach cover.', 'error');
@@ -693,9 +708,12 @@ onMounted(() => {
                                     </div>
                                 </div>
                                 <div class="mpc-gallery-item-body" style="padding: 10px 12px; display: flex; flex-direction: column; gap: 4px;">
+                                    <div style="font-weight: 600; font-size: 0.82rem; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {{ getCustomTitle(c, resolveCoverType(c) === 'cartoon' ? 'Editorial Cartoon' : 'Editorial Photo') }}
+                                    </div>
                                     <div class="mpc-gallery-artist" style="font-size: 0.8rem; color: #344054; display: inline-flex; align-items: center; gap: 6px;">
                                         <i :class="resolveCoverType(c) === 'cartoon' ? 'fa-solid fa-palette' : 'fa-solid fa-camera'" style="color: var(--sidebar-maroon, #5c0a18); font-size: 0.75rem;"></i>
-                                        <span>{{ resolveCoverType(c) === 'cartoon' ? 'Cartoonist' : 'Photojournalist' }}: <strong style="color: #101828;">{{ cleanArtistName(c.artist_name || c.artist) }}</strong></span>
+                                        <strong style="color: #101828;">{{ cleanArtistName(c.artist_name || c.artist) }}</strong>
                                     </div>
                                 </div>
                             </div>

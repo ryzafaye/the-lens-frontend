@@ -20,6 +20,8 @@ import {
 import { formatCategoryDisplay } from '../../utils/categoryFormat.js';
 import { currentUser } from '../../stores/auth.js';
 import { confirmAction, showToast as globalShowToast } from '../../utils/modal.js';
+import ArticleRichToolbar from '../../components/ArticleRichToolbar.vue';
+import { handleRichEditorKeydown, handleRichEditorPaste } from '../../utils/richEditor.js';
 import '../../assets/css/executive-dashboard.css';
 import '../../assets/css/executive-review-articles.css';
 import '../../assets/css/executive-modals.css';
@@ -292,7 +294,7 @@ function closeRemarksModal() {
 
 function openManuscriptFromRemarks(article) {
     closeRemarksModal();
-    openManuscriptModal(article, false);
+    openManuscriptModal(article, false, true);
 }
 
 // Resubmit directly from table row
@@ -300,7 +302,7 @@ async function handleTableResubmit(article) {
     if (isSubmitting.value) return;
 
     showToast('You cannot submit an article returned for revision without editing the article body. Please revise the manuscript before submitting.', 'error');
-    openManuscriptModal(article, false);
+    openManuscriptModal(article, false, true);
 }
 
 // Resubmit revised article from manuscript modal
@@ -348,8 +350,18 @@ async function handleManuscriptSubmit() {
 }
 
 // Open In-Place Manuscript Review / Edit Modal
-function openManuscriptModal(article, openWithRevision = false) {
+const isEditingManuscript = ref(false);
+
+function enableManuscriptEditing() {
+    isEditingManuscript.value = true;
+    nextTick(() => {
+        dashBodyRef.value?.focus();
+    });
+}
+
+function openManuscriptModal(article, openWithRevision = false, startEditing = false) {
     activeManuscript.value = { ...article };
+    isEditingManuscript.value = Boolean(startEditing);
     showRemarksSection.value = openWithRevision;
     revisionRemarks.value = '';
     remarksError.value = '';
@@ -371,6 +383,9 @@ function openManuscriptModal(article, openWithRevision = false) {
         }
         if (dashBodyRef.value) {
             dashBodyRef.value.innerHTML = formatCleanArticleContent(activeManuscript.value.content || activeManuscript.value.excerpt || '<p>No content available.</p>');
+            if (startEditing) {
+                dashBodyRef.value.focus();
+            }
         }
         if (openWithRevision) {
             nextTick(() => {
@@ -386,7 +401,7 @@ function openManuscriptModal(article, openWithRevision = false) {
 
 // Open Manuscript Modal directly focused on Revision Remarks
 function openRevisionModal(article) {
-    openManuscriptModal(article, true);
+    openManuscriptModal(article, true, false);
 }
 
 function onDashHeadlineKeydown(e) {
@@ -409,6 +424,7 @@ function toggleRevisionRemarks() {
 
 function closeManuscriptModal() {
     isManuscriptModalOpen.value = false;
+    isEditingManuscript.value = false;
     activeManuscript.value = null;
     showRemarksSection.value = false;
     revisionRemarks.value = '';
@@ -529,6 +545,7 @@ async function handleSaveManuscriptChanges() {
         activeManuscript.value.title = title;
         activeManuscript.value.excerpt = excerpt;
         activeManuscript.value.content = content;
+        isEditingManuscript.value = false;
 
         showToast('Manuscript edits saved successfully.', 'success');
         await loadDashboardData();
@@ -806,7 +823,8 @@ onUnmounted(() => {
                             :is-loading="isLoading"
                             :is-submitting="isSubmitting"
                             empty-text="No pending submissions yet."
-                            @open-manuscript="openManuscriptModal($event, false)"
+                            @open-manuscript="openManuscriptModal($event, false, false)"
+                            @edit-manuscript="openManuscriptModal($event, false, true)"
                             @approve="handleApprove($event.id)"
                             @revision="openRevisionModal"
                             @resubmit="handleTableResubmit"
@@ -1293,10 +1311,10 @@ onUnmounted(() => {
                         ref="dashHeadlineRef"
                         id="modal-headline"
                         class="manuscript-headline"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         @keydown="onDashHeadlineKeydown"
                     ></h2>
 
@@ -1323,22 +1341,27 @@ onUnmounted(() => {
                         ref="dashExcerptRef"
                         id="modal-excerpt"
                         class="viewer-excerpt"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
                         style="display: none;"
                     ></p>
+
+                    <!-- Formatting Toolbar (Shown only when Edit is active) -->
+                    <ArticleRichToolbar v-if="isEditingManuscript" :target="dashBodyRef" sticky-top="0px" />
 
                     <!-- Story Body Content -->
                     <div
                         ref="dashBodyRef"
                         id="modal-body"
-                        class="manuscript-text-content"
-                        contenteditable="true"
-                        spellcheck="true"
-                        role="textbox"
-                        aria-multiline="true"
+                        class="manuscript-text-content rich-editable-surface"
+                        :contenteditable="isEditingManuscript ? 'true' : 'false'"
+                        :spellcheck="isEditingManuscript"
+                        :role="isEditingManuscript ? 'textbox' : undefined"
+                        :aria-multiline="isEditingManuscript ? 'true' : undefined"
+                        @keydown="(e) => isEditingManuscript && handleRichEditorKeydown(e, dashBodyRef)"
+                        @paste="(e) => isEditingManuscript && handleRichEditorPaste(e)"
                     ></div>
 
                     <!-- Mandatory Revision Remarks Box (Standard Design) -->
@@ -1370,10 +1393,23 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Modal Footer: Save, For Revision / Submit Revision, Approve for M&PC -->
+                <!-- Modal Footer: Edit -> Save, For Revision / Submit Revision, Approve for M&PC -->
                 <div class="manuscript-footer">
                     <template v-if="isRevisionStatus(activeManuscript.status)">
                         <button
+                            v-if="!isEditingManuscript"
+                            type="button"
+                            id="modal-edit-btn"
+                            class="btn-box-save"
+                            :disabled="isSubmitting"
+                            @click="enableManuscriptEditing"
+                            title="Edit manuscript"
+                        >
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            v-else
                             type="button"
                             id="modal-save-btn"
                             class="btn-box-save"
@@ -1399,6 +1435,19 @@ onUnmounted(() => {
                     </template>
                     <template v-else>
                         <button
+                            v-if="!isEditingManuscript"
+                            type="button"
+                            id="modal-edit-btn"
+                            class="btn-box-save"
+                            :disabled="isSubmitting"
+                            @click="enableManuscriptEditing"
+                            title="Edit headline, excerpt, and article body"
+                        >
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Edit</span>
+                        </button>
+                        <button
+                            v-else
                             type="button"
                             id="modal-save-btn"
                             class="btn-box-save btn-save-maroon"

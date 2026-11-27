@@ -299,6 +299,9 @@ onMounted(() => {
                     </div>
 
                     <div class="media-card-body">
+                        <h4 :title="cleanTitle(item)" style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 6px 0; font-family: 'DM Sans', sans-serif; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {{ cleanTitle(item) }}
+                        </h4>
                         <div class="media-card-meta" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #64748b; margin-bottom: 10px;">
                             <span style="white-space: nowrap;"><i class="fa-regular fa-calendar"></i> {{ item.date || 'Recent' }}</span>
                             <span style="white-space: nowrap;"><i :class="item.type === 'cartoon' ? 'fa-solid fa-palette' : 'fa-solid fa-camera'" style="color: var(--sidebar-maroon, #5c0a18);"></i> <strong>{{ cleanArtistName(item.artist || item.artist_name || 'Media Team Member') }}</strong></span>
@@ -314,23 +317,21 @@ onMounted(() => {
                             <span>{{ item.remarks }}</span>
                         </div>
 
-                        <div class="media-card-actions" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto;">
-                            <span style="font-size: 0.75rem; color: #64748b;"><i class="fa-solid fa-magnifying-glass"></i> Click to inspect</span>
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <button
-                                    v-if="normalizeStatus(item.status) === 'returned'"
-                                    type="button"
-                                    class="btn-media-resubmit"
-                                    @click.stop="openResubmitModal(item)"
-                                    title="Resubmit media asset for review"
-                                >
-                                    <i class="fa-solid fa-paper-plane"></i>
-                                    <span>Resubmit</span>
-                                </button>
-                                <span style="color: var(--sidebar-maroon, #5c0a18); font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
-                                    <span>Inspect</span> <i class="fa-solid fa-chevron-right" style="font-size: 0.7rem;"></i>
-                                </span>
-                            </div>
+                        <div class="media-card-actions" style="margin-top: auto; display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn-media-inspect" @click.stop="openInspectModal(item)" style="width: auto; padding: 6px 14px;">
+                                <i class="fa-regular fa-eye"></i>
+                                <span>Inspect</span>
+                            </button>
+                            <button
+                                v-if="normalizeStatus(item.status) === 'returned'"
+                                type="button"
+                                class="btn-media-resubmit"
+                                @click.stop="openResubmitModal(item)"
+                                title="Resubmit media asset for review"
+                            >
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>Resubmit</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -377,6 +378,9 @@ onMounted(() => {
                         </div>
 
                         <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 6px;">
+                            <h3 style="font-size: 1.12rem; font-weight: 700; color: #1e293b; margin: 0 0 4px 0; font-family: 'DM Sans', sans-serif; word-break: break-word;">
+                                {{ cleanTitle(activeInspectItem) }}
+                            </h3>
                             <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: #64748b;">
                                 <span style="white-space: nowrap;"><i class="fa-regular fa-calendar" style="margin-right: 6px;"></i> {{ activeInspectItem?.date || 'Recent' }}</span>
                                 <span style="white-space: nowrap;"><i :class="activeInspectItem?.type === 'cartoon' ? 'fa-solid fa-palette' : 'fa-solid fa-camera'" style="margin-right: 6px; color: var(--sidebar-maroon, #5c0a18);"></i> <span>{{ activeInspectItem?.type === 'cartoon' ? 'Cartoonist:' : 'Photojournalist:' }} <strong>{{ cleanArtistName(activeInspectItem?.artist || activeInspectItem?.artist_name || 'Media Team Member') }}</strong></span></span>
