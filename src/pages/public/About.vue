@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, nextTick, onMounted, onUnmounted } from 'vue';
 import PublicLayout from '../../layouts/PublicLayout.vue';
 import { getPublicOfficers } from '../../services/api.js';
 
@@ -46,6 +46,8 @@ async function fetchOfficersData() {
         officers.value = fallbackExecutives;
     } finally {
         loadingOfficers.value = false;
+        await nextTick();
+        observeRevealElements();
     }
 }
 
@@ -151,43 +153,56 @@ function closePreview() {
 }
 
 // Intersection Observer for scroll-triggered staggered reveals
+const aboutPageRef = ref(null);
 let observer = null;
+let isMounted = false;
 
-function initScrollAnimations() {
-    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
-        document.querySelectorAll('.editorial-reveal, .editorial-hairline').forEach(el => {
-            el.classList.add('is-revealed');
-        });
+function observeRevealElements() {
+    if (!isMounted || typeof window === 'undefined') return;
+    const root = aboutPageRef.value || document;
+    const targets = root.querySelectorAll('.editorial-reveal:not(.is-revealed), .editorial-hairline:not(.is-revealed)');
+
+    if (!('IntersectionObserver' in window)) {
+        targets.forEach((el) => el.classList.add('is-revealed'));
         return;
     }
 
-    observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('is-revealed');
-                observer.unobserve(entry.target);
-            }
+    if (!observer) {
+        observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-revealed');
+                    observer?.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.08,
+            rootMargin: '0px 0px -20px 0px',
         });
-    }, {
-        threshold: 0.12,
-        rootMargin: '0px 0px -30px 0px'
-    });
+    }
 
-    document.querySelectorAll('.editorial-reveal, .editorial-hairline').forEach(el => {
-        observer.observe(el);
+    targets.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.bottom < 0) {
+            el.classList.add('is-revealed');
+        } else {
+            observer.observe(el);
+        }
     });
 }
 
-onMounted(() => {
+onMounted(async () => {
+    isMounted = true;
+    await nextTick();
+    observeRevealElements();
     fetchOfficersData();
-    setTimeout(() => {
-        initScrollAnimations();
-    }, 100);
 });
 
 onUnmounted(() => {
+    isMounted = false;
     if (observer) {
         observer.disconnect();
+        observer = null;
     }
     if (typeof document !== 'undefined') {
         document.body.style.overflow = '';
@@ -197,7 +212,7 @@ onUnmounted(() => {
 
 <template>
     <PublicLayout>
-        <main class="about-page page-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <main ref="aboutPageRef" class="about-page page-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
             <!-- 1. Compact Hero Banner (Peeking Next Section & Refined Typographic Masthead Accent) -->
             <section class="about-hero editorial-reveal mb-12" aria-labelledby="about-title">
                 <div class="about-hero-grid flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">

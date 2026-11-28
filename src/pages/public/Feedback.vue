@@ -127,7 +127,7 @@ async function handleSubmit() {
                     </div>
 
                     <p class="feedback-small-note">
-                        <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                        <i class="fa-regular" aria-hidden="true"></i>
                         <span>Your feedback helps us keep campus journalism open, thoughtful, and accountable.</span>
                     </p>
                 </div>
@@ -257,16 +257,16 @@ async function handleSubmit() {
                     <h2 id="feedback-contact-title">
                         Reach The Lens directly.
                     </h2>
-                    <p>You can also contact the publication through its official email or Facebook page.</p>
+                    <p>You can connect with our publication through our official social media accounts or send us an email.</p>
                 </div>
                 <div class="feedback-contact-methods">
-                    <a class="feedback-contact-link" href="mailto:thelenspublicationpupbc@gmail.com">
+                    <a class="feedback-contact-link" href="https://www.instagram.com/thelenspupbc?jplx=cm84cmxwMTlqaXNo" target="_blank" rel="noopener noreferrer">
                         <span class="feedback-contact-icon">
-                            <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                            <i class="fa-brands fa-instagram" aria-hidden="true"></i>
                         </span>
                         <span>
-                            <small>EMAIL US</small>
-                            <strong>thelenspublicationpupbc@gmail.com</strong>
+                            <small>INSTAGRAM</small>
+                            <strong>@thelenspupbc</strong>
                         </span>
                         <i class="fa-solid fa-arrow-up-right-from-square feedback-contact-arrow" aria-hidden="true"></i>
                     </a>
@@ -275,8 +275,18 @@ async function handleSubmit() {
                             <i class="fa-brands fa-facebook-f" aria-hidden="true"></i>
                         </span>
                         <span>
-                            <small>FACEBOOK PAGE</small>
+                            <small>FACEBOOK</small>
                             <strong>The Lens Publication</strong>
+                        </span>
+                        <i class="fa-solid fa-arrow-up-right-from-square feedback-contact-arrow" aria-hidden="true"></i>
+                    </a>
+                    <a class="feedback-contact-link" href="mailto:thelenspublicationpupbc@gmail.com">
+                        <span class="feedback-contact-icon">
+                            <i class="fa-regular fa-envelope" aria-hidden="true"></i>
+                        </span>
+                        <span>
+                            <small>EMAIL</small>
+                            <strong>thelenspublicationpupbc@gmail.com</strong>
                         </span>
                         <i class="fa-solid fa-arrow-up-right-from-square feedback-contact-arrow" aria-hidden="true"></i>
                     </a>

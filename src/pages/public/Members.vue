@@ -1,6 +1,20 @@
 <script setup>
+import { ref, onMounted } from 'vue';
 import PublicLayout from '../../layouts/PublicLayout.vue';
 const placeholderImg = '/images/member-placeholder.svg';
+const leadershipRevealed = ref(false);
+
+onMounted(() => {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                leadershipRevealed.value = true;
+            });
+        });
+    } else {
+        leadershipRevealed.value = true;
+    }
+});
 
 const leadershipRoster = [
     { position: 'President', group: 'Executive Board', name: 'Publication President' },
@@ -49,12 +63,15 @@ function scrollToTop() {
             </section>
 
             <!-- Leadership Section -->
-            <section class="members-list-section mb-16" aria-labelledby="leadership-list-title">
+            <section class="members-list-section mb-16 pt-8 editorial-hairline" :class="{ 'is-revealed': leadershipRevealed }" aria-labelledby="leadership-list-title">
                 <div class="about-section-heading mb-8">
                     <p class="about-section-kicker text-xs font-bold tracking-widest text-wine uppercase">01 / LEADERSHIP</p>
                     <h2 id="leadership-list-title" class="font-display text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1">
-                        Officers, editors &amp; heads
+                        Officers, Editors &amp; Heads
                     </h2>
+                    <p class="about-section-lead text-xs sm:text-sm text-stone-600 mt-1 max-w-2xl">
+                        The executive board, editorial board, and section heads guiding the publication's direction and newsroom operations.
+                    </p>
                 </div>
 
                 <div id="all-leadership-grid" class="people-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-5">
@@ -75,7 +92,7 @@ function scrollToTop() {
                 <div class="about-section-heading mb-8">
                     <p class="about-section-kicker text-xs font-bold tracking-widest text-wine uppercase">02 / STAFF</p>
                     <h2 id="staff-list-title" class="font-display text-2xl sm:text-3xl font-extrabold text-stone-900 mt-1">
-                        Publication staffers
+                        Publication Staffers
                     </h2>
                     <p class="about-section-lead text-xs sm:text-sm text-stone-600 mt-1">
                         The reporters, writers, artists, photographers, and multimedia contributors who bring campus stories to life.
